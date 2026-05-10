@@ -1571,7 +1571,7 @@ function SettingsPage() {
               <button
                 onClick={() => deleteClient(client.id)}
                 className="rounded bg-red-500 px-2 py-1 text-xs text-white"
-              > 
+              >
                 削除
               </button>
             </div>
