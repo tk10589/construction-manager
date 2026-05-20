@@ -2,6 +2,7 @@
 
 import { projectCompilationEventsSubscribe } from "next/dist/build/swc/generated-native";
 import { useEffect, useState } from "react";
+import { signOut } from "next-auth/react";
 
 const menuItems = [
   { id: "projects", title: "案件管理", description: "案件一覧、進捗、受注金額を確認します。" },
@@ -373,7 +374,13 @@ export default function Home() {
               >
                 {item.title}
               </button>
-            ))}            
+            ))}
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="mt-6 w-full rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-600"
+            >
+              ログアウト
+            </button>            
           </nav>
         </aside>
 
