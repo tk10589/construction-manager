@@ -45,21 +45,11 @@ export default function Home() {
   const [editData, setEditData] = useState<Project | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [errors, setErrors] =
-    useState<FormErrors>({});
-  // const [errors, setErrors] = useState<{
-  //   name?: string;
-  //   client?: string;
-  //   manager?: string;
-  //   amount?: string;
-  // }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [amountInput, setAmountInput] = useState("");
   const [clients, setClients] = useState<any[]>([]);
   const [staffs, setStaffs] = useState<any[]>([]);
-  // const [amountInput, setAmountInput] =
-  // useState(
-  //   selectedProject.amount.toLocaleString()
-  // );
+
   type FormErrors = {
     name?: string;
     client?: string;
@@ -144,9 +134,9 @@ export default function Home() {
   }, []);
 
   const addProject = async (
-    newProject: Omit<Project, "id" | "code">
-  ) => {
-    await fetch("/api/projects", {
+    newProject: Omit<Project, "id">
+  ): Promise<boolean> => {
+    const response = await fetch("/api/projects", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -154,8 +144,18 @@ export default function Home() {
       body: JSON.stringify(newProject),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+
+      alert(errorData.error || "案件の登録に失敗しました。");
+
+      return false;
+    }
+
     await fetchProjects();
     setSelectedMenu(menuItems[0]);
+
+    return true;
   };
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -599,21 +599,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* <input
-                  value={editData.client}
-                  onChange={(e) => {
-                    setEditData({ ...editData, client: e.target.value });
-                    setErrors((prev) => ({ ...prev, client: undefined }));
-                  }}
-                  className={`w-full border px-3 py-2 rounded ${
-                    errors.client ? "border-red-500" : ""
-                  }`}
-                />
-
-                {errors.client && (
-                  <p className="text-red-500 text-xs">{errors.client}</p>
-                )} */}
-
                 <div>
                   <label className="mb-1 block text-sm font-semibold">
                     担当者
@@ -658,21 +643,6 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-
-                {/* <input
-                  value={editData.manager}
-                  onChange={(e) => {
-                    setEditData({ ...editData, manager: e.target.value });
-                    setErrors((prev) => ({ ...prev, manager: undefined }));
-                  }}
-                  className={`w-full border px-3 py-2 rounded ${
-                    errors.manager ? "border-red-500" : ""
-                  }`}
-                />
-
-                {errors.manager && (
-                  <p className="text-red-500 text-xs">{errors.client}</p>
-                )} */}
 
                 <input
                   value={amountInput}
@@ -952,8 +922,7 @@ function NewProjectForm({
   clients,
   staffs,
 }: {
-  onAdd: (project: Omit<Project, "id" | "code">) => void;
-  
+  onAdd: (project: Omit<Project, "id">) => Promise<boolean>;
   clients: any[];
   staffs: any[];
 }) {
@@ -966,17 +935,23 @@ function NewProjectForm({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [staff, setStaff] = useState("");
+  const [code, setCode] = useState("");
 
-    const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState({
     name: "",
     client: "",
     manager: "",
     amount: "",
   });
 
-  const handleSubmit = () => {
-    if (!name || !client || !manager || !amount) {
+  const handleSubmit = async () => {
+    if (!code || !type || !name || !client || !manager || !amount) {
       alert("未入力の項目があります。");
+      return;
+    }
+    
+    if (!code.trim()) {
+      alert("案件番号を入力してください");
       return;
     }
 
@@ -985,7 +960,9 @@ function NewProjectForm({
       return;
     }
 
-    onAdd({
+    // onAdd({
+    const success = await onAdd({
+      code,
       type,
       name,
       client,
@@ -997,6 +974,10 @@ function NewProjectForm({
       clients,
       staffs,
     });
+
+    if (!success) {
+      return;
+    }
 
     setName("");
     setClient("");
@@ -1023,6 +1004,26 @@ function NewProjectForm({
           <option value="E">電気（E）</option>
           <option value="MM">保守（MM）</option>
         </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-gray-800">
+          案件番号
+        </label>
+
+        <input
+          value={code}
+          onChange={(e) => {
+            const value = e.target.value;
+
+            // 半角英数字とハイフンのみ
+            if (/^[A-Za-z0-9-]*$/.test(value)) {
+              setCode(value);
+            }
+          }}
+          placeholder="例: M-2026-001"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+        />
       </div>
 
       <div>
@@ -1463,6 +1464,10 @@ function SettingsPage() {
   const [clientName, setClientName] = useState("");
   const [staffs, setStaffs] = useState<any[]>([]);
   const [staffName, setStaffName] = useState("");
+  const [editingClientId, setEditingClientId] = useState<number | null>(null);
+  const [editingClientName, setEditingClientName] = useState("");
+  const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
+  const [editingStaffName, setEditingStaffName] = useState("");
 
   const fetchClients = async () => {
     const response = await fetch("/api/clients");
@@ -1536,6 +1541,42 @@ function SettingsPage() {
     fetchStaffs();
   };
 
+  const updateClient = async (id: number) => {
+    if (!editingClientName.trim()) return;
+
+    await fetch(`/api/clients/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: editingClientName,
+      }),
+    });
+
+    setEditingClientId(null);
+    setEditingClientName("");
+    fetchClients();
+  };
+
+  const updateStaff = async (id: number) => {
+    if (!editingStaffName.trim()) return;
+
+    await fetch(`/api/staffs/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: editingStaffName,
+      }),
+    });
+
+    setEditingStaffId(null);
+    setEditingStaffName("");
+    fetchStaffs();
+  };
+
   useEffect(() => {
     fetchClients();
   }, []);
@@ -1567,20 +1608,58 @@ function SettingsPage() {
           </button>
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 max-h-40 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
           {clients.map((client) => (
             <div
               key={client.id}
               className="flex items-center justify-between rounded border px-3 py-2"
             >
-              <span>{client.name}</span>
+              {editingClientId === client.id ? (
+                <div className="flex flex-1 gap-2">
+                  <input
+                    value={editingClientName}
+                    onChange={(e) => setEditingClientName(e.target.value)}
+                    className="w-full rounded border px-2 py-1"
+                  />
 
-              <button
-                onClick={() => deleteClient(client.id)}
-                className="rounded bg-red-500 px-2 py-1 text-xs text-white"
-              >
-                削除
-              </button>
+                  <button
+                    onClick={() => updateClient(client.id)}
+                    className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+                  >
+                    保存
+                  </button>
+
+                  <button
+                    onClick={() => setEditingClientId(null)}
+                    className="rounded bg-gray-400 px-2 py-1 text-xs text-white"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span>{client.name}</span>
+
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingClientId(client.id);
+                        setEditingClientName(client.name);
+                      }}
+                      className="rounded bg-blue-500 px-2 py-1 text-xs text-white"
+                    >
+                      編集
+                    </button>
+
+                    <button
+                      onClick={() => deleteClient(client.id)}
+                      className="rounded bg-red-500 px-2 py-1 text-xs text-white"
+                    >
+                      削除
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -1605,25 +1684,63 @@ function SettingsPage() {
             登録
           </button>
         </div>
-        <div className="mt-4 space-y-2">
+
+        <div className="mt-4 max-h-40 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
           {staffs.map((staff) => (
             <div
               key={staff.id}
               className="flex items-center justify-between rounded border px-3 py-2"
             >
-              <span>{staff.name}</span>
+              {editingStaffId === staff.id ? (
+                <div className="flex flex-1 gap-2">
+                  <input
+                    value={editingStaffName}
+                    onChange={(e) => setEditingStaffName(e.target.value)}
+                    className="w-full rounded border px-2 py-1"
+                  />
 
-              <button
-                onClick={() => deletestaff(staff.id)}
-                className="rounded bg-red-500 px-2 py-1 text-xs text-white"
-              >
-                削除
-              </button>
+                  <button
+                    onClick={() => updateStaff(staff.id)}
+                    className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+                  >
+                    保存
+                  </button>
+
+                  <button
+                    onClick={() => setEditingStaffId(null)}
+                    className="rounded bg-gray-400 px-2 py-1 text-xs text-white"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span>{staff.name}</span>
+
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingStaffId(staff.id);
+                        setEditingStaffName(staff.name);
+                      }}
+                      className="rounded bg-blue-500 px-2 py-1 text-xs text-white"
+                    >
+                      編集
+                    </button>
+
+                    <button
+                      onClick={() => deletestaff(staff.id)}
+                      className="rounded bg-red-500 px-2 py-1 text-xs text-white"
+                    >
+                      削除
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
       </div>
-
     </div>
   );
 }
