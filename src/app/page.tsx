@@ -15,14 +15,21 @@ const menuItems = [
 type Project = {
   id: number;
   code: string;
+  type: string;
+
   name: string;
-  type: string; // ←これ追加
   client: string;
   manager: string;
+
   amount: number;
+  budget?: number;
+
   status: string;
+
   clients: any[];
   staffs: any[];
+  
+  orderDate?: string;
 
   startDate?: string;
   endDate?: string;
@@ -830,6 +837,7 @@ function ProjectsTable({
             </th>
             <th className="px-4 py-3 font-bold">種別</th>
             <th className="px-4 py-3 font-bold">案件名</th>
+            <th className="px-4 py-3 font-bold">受注日</th>
             <th className="px-4 py-3 font-bold">発注者</th>
             <th className="px-4 py-3 font-bold">担当者</th>
             <th
@@ -845,6 +853,7 @@ function ProjectsTable({
             >
               受注金額 {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
+            <th className="px-4 py-3 font-bold">実行予算</th>
             <th className="px-4 py-3 font-bold">着工日</th>
             <th className="px-4 py-3 font-bold">完了日</th>
             <th className="px-4 py-3 font-bold">進捗</th>
@@ -873,10 +882,20 @@ function ProjectsTable({
               >
                 {project.name}
               </td>
+              <td className="px-4 py-3 text-sm">
+                {project.orderDate
+                  ? new Date(project.orderDate).toLocaleDateString()
+                  : "-"}
+              </td>
               <td className="px-4 py-3 text-gray-800">{project.client}</td>
               <td className="px-4 py-3 text-gray-800">{project.manager}</td>
               <td className="px-4 py-3 font-semibold text-gray-900 text-center">
                 ¥{project.amount.toLocaleString() || 0}
+              </td>
+              <td className="px-4 py-3 text-right">
+                {project.budget
+                  ? `¥${project.budget.toLocaleString()}`
+                  : "-"}
               </td>
               <td className="px-4 py-3 text-sm">
                 {project.startDate
@@ -936,6 +955,8 @@ function NewProjectForm({
   const [endDate, setEndDate] = useState("");
   const [staff, setStaff] = useState("");
   const [code, setCode] = useState("");
+  const [budget, setBudget] = useState("");
+  const [orderDate, setOrderDate] = useState("");
 
   const [errors, setErrors] = useState({
     name: "",
@@ -960,21 +981,27 @@ function NewProjectForm({
       return;
     }
 
-    // onAdd({
     const success = await onAdd({
       code,
       type,
       name,
       client,
       manager,
+
       amount: Number(amount),
+      budget: budget ? Number(budget) : undefined,
+
       status,
+
+      orderDate: orderDate || undefined,
+
       startDate,
       endDate,
+
       clients,
       staffs,
     });
-
+    // リセット（成功後）
     if (!success) {
       return;
     }
@@ -984,6 +1011,8 @@ function NewProjectForm({
     setStaff("");
     setManager("");
     setAmount("");
+    setBudget("");
+    setOrderDate("");
     setStatus("未着手");
   };
 
@@ -1035,6 +1064,17 @@ function NewProjectForm({
           placeholder="例：青葉ビル 自火報更新工事"
           value={name}
           onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="text-sm">受注日</label>
+
+        <input
+          type="date"
+          value={orderDate}
+          onChange={(e) => setOrderDate(e.target.value)}
+          className="w-full rounded border px-3 py-2"
         />
       </div>
 
@@ -1118,6 +1158,20 @@ function NewProjectForm({
           placeholder="例：1800000"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="text-sm">実行予算</label>
+
+        <input
+          value={budget}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^\d]/g, "");
+            setBudget(value);
+          }}
+          className="w-full rounded border px-3 py-2"
+          placeholder="例: 1000000"
         />
       </div>
 

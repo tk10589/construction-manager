@@ -31,13 +31,25 @@ export async function PUT(
     data: {
       type: body.type,
       name: body.name,
+
       client: body.client,
       manager: body.manager,
+
       amount: Number(body.amount),
+      budget: body.budget,
+
       status: body.status,
 
-      startDate: body.startDate ? new Date(body.startDate) : null,
-      endDate: body.endDate ? new Date(body.endDate) : null,
+      orderDate: body.orderDate
+        ? new Date(body.orderDate)
+        : null,
+
+      startDate: body.startDate
+        ? new Date(body.startDate)
+        : null,
+      endDate: body.endDate
+        ? new Date(body.endDate)
+        : null,
     },
   });
 

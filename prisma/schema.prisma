@@ -16,15 +16,20 @@ model Project {
   id        Int      @id @default(autoincrement())
   code      String   @unique
   type      String   @default("F")
+
   name      String
   client    String
-  amount    Int
   manager   String
+
+  amount    Int
+  budget    Int?      // ←追加（実行予算）
 
   status    String
 
-  startDate DateTime?  // ←追加
-  endDate   DateTime?  // ←追加
+  orderDate DateTime? // ←追加（受注日）
+
+  startDate DateTime?
+  endDate   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
