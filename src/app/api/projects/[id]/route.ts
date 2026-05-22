@@ -24,34 +24,40 @@ export async function PUT(
 
   const body = await request.json();
 
-  const project = await prisma.project.update({
-    where: {
+ const exists = await prisma.project.findFirst({
+  where: {
+    code: body.code,
+    NOT: {
       id: Number(id),
     },
-    data: {
-      type: body.type,
-      name: body.name,
+  },
+});
 
-      client: body.client,
-      manager: body.manager,
+if (exists) {
+  return NextResponse.json(
+    { error: "この案件番号は既に登録されています" },
+    { status: 400 }
+  );
+}
 
-      amount: Number(body.amount),
-      budget: body.budget,
-
-      status: body.status,
-
-      orderDate: body.orderDate
-        ? new Date(body.orderDate)
-        : null,
-
-      startDate: body.startDate
-        ? new Date(body.startDate)
-        : null,
-      endDate: body.endDate
-        ? new Date(body.endDate)
-        : null,
-    },
-  });
+const project = await prisma.project.update({
+  where: {
+    id: Number(id),
+  },
+  data: {
+    code: body.code,
+    type: body.type,
+    name: body.name,
+    client: body.client,
+    manager: body.manager,
+    amount: Number(body.amount),
+    budget: body.budget ?? null,
+    status: body.status,
+    orderDate: body.orderDate ? new Date(body.orderDate) : null,
+    startDate: body.startDate ? new Date(body.startDate) : null,
+    endDate: body.endDate ? new Date(body.endDate) : null,
+  },
+});
 
   return NextResponse.json(project);
 }

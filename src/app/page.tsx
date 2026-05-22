@@ -1,7 +1,7 @@
 "use client";
 
 import { projectCompilationEventsSubscribe } from "next/dist/build/swc/generated-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 
 const menuItems = [
@@ -54,10 +54,21 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [amountInput, setAmountInput] = useState("");
+  const [budgetInput, setBudgetInput] = useState("");
   const [clients, setClients] = useState<any[]>([]);
   const [staffs, setStaffs] = useState<any[]>([]);
 
+  const [detailClientKeyword, setDetailClientKeyword] = useState("");
+  const [showDetailClientList, setShowDetailClientList] = useState(false);
+
+  const [detailManagerKeyword, setDetailManagerKeyword] = useState("");
+  const [showDetailManagerList, setShowDetailManagerList] = useState(false);
+
+  const detailClientSearchRef = useRef<HTMLDivElement>(null);
+  const detailManagerSearchRef = useRef<HTMLDivElement>(null);
+
   type FormErrors = {
+    code?: string;
     name?: string;
     client?: string;
     manager?: string;
@@ -138,6 +149,63 @@ export default function Home() {
   useEffect(() => {
     fetchProjects();
     fetchMasters();
+  }, []);
+
+  // selectedProject が変わった時に初期値
+  useEffect(() => {
+    if (selectedProject) {
+      setEditData(selectedProject);
+      setIsEditing(false);
+
+      setDetailClientKeyword(selectedProject.client);
+      setDetailManagerKeyword(selectedProject.manager);
+
+      setAmountInput(
+        selectedProject.amount.toLocaleString("ja-JP")
+      );
+
+      setBudgetInput(
+        selectedProject.budget
+          ? selectedProject.budget.toLocaleString("ja-JP")
+          : ""
+      );
+    }
+  }, [selectedProject]);
+
+  // 外側クリック処理
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      if (
+        detailClientSearchRef.current &&
+        !detailClientSearchRef.current.contains(target)
+      ) {
+        setShowDetailClientList(false);
+      }
+
+      if (
+        detailManagerSearchRef.current &&
+        !detailManagerSearchRef.current.contains(target)
+      ) {
+        setShowDetailManagerList(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowDetailClientList(false);
+        setShowDetailManagerList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const addProject = async (
@@ -225,47 +293,74 @@ export default function Home() {
   const handleSave = async () => {
     if (!editData) return;
 
+    const newErrors: FormErrors = {};
+
     const numericAmount = Number(
-    amountInput.replace(/,/g, "")
+      amountInput.replace(/,/g, "")
     );
 
-    if (!numericAmount || numericAmount <= 0) {
-      setErrors((prev) => ({
-        ...prev,
-        amount: "金額を正しく入力してください",
-      }));
-      return;
+    const numericBudget = budgetInput
+      ? Number(budgetInput.replace(/,/g, ""))
+      : undefined;
+
+    if (!editData.code.trim()) {
+      newErrors.code = "案件番号を入力してください";
     }
 
-    if (!validate()) return; // ←これ追加
-    
-    try {
-      setIsSaving(true); // ←開始
+    if (!/^[A-Za-z0-9-]+$/.test(editData.code)) {
+      newErrors.code =
+        "案件番号は半角英数字とハイフンのみ使用できます";
+    }
 
-      await fetch(`/api/projects/${editData.id}`, {
+    if (!editData.name.trim()) {
+      newErrors.name = "案件名は必須です";
+    }
+
+    if (!editData.client.trim()) {
+      newErrors.client = "発注者は必須です";
+    }
+
+    if (!editData.manager.trim()) {
+      newErrors.manager = "担当者は必須です";
+    }
+
+    if (!numericAmount || numericAmount <= 0) {
+      newErrors.amount = "金額は正しく入力してください";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
+    try {
+      setIsSaving(true);
+
+      const response = await fetch(`/api/projects/${editData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...editData,
-          amount: numericAmount, // ←ここ重要
+          amount: numericAmount,
+          budget: numericBudget,
         }),
-      });          
+      });
 
-      await fetchProjects(); // 一覧更新
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.error || "更新に失敗しました");
+        return;
+      }
 
+      await fetchProjects();
+
+      setSelectedProject(null);
+      setIsEditing(false);
       setToast("更新しました！");
-
-      setSelectedProject(null); // モーダル閉じる
-      setIsEditing(false); // 編集モード解除
-
-    } catch (error) {
-      console.error(error);
-      alert("更新に失敗しました");
-    }finally {
-      setIsSaving(false); // ←終了（超重要）
-    };
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredProjects = projects.filter((p) => {
@@ -335,6 +430,19 @@ export default function Home() {
 
     URL.revokeObjectURL(url);
   };
+
+  // 絞り込み配列
+  const filteredDetailClients = clients.filter((client) =>
+    client.name
+      .toLowerCase()
+      .includes(detailClientKeyword.toLowerCase())
+  );
+  // 絞り込み配列
+  const filteredDetailStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(detailManagerKeyword.toLowerCase())
+  );
 
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
@@ -433,7 +541,7 @@ export default function Home() {
                   staffs={staffs} 
                 />
               ) : selectedMenu.id === "settings" ? (
-                <SettingsPage />
+                <SettingsPage onMasterUpdated={fetchMasters} />
               ) : (
                 <div className="rounded-lg border border-gray-300 p-6">
                   <h3 className="text-lg font-bold text-gray-900">
@@ -517,11 +625,21 @@ export default function Home() {
             {!isEditing && (
               <div className="mt-4 space-y-2 text-sm">
                 <p><b>案件番号：</b>{selectedProject.code}</p>
+                <p><b>受注日：</b>
+                  {selectedProject.orderDate
+                    ? new Date(selectedProject.orderDate).toLocaleDateString()
+                    : "-"}
+                </p>
                 <p><b>種別：</b>{selectedProject.type}</p>
                 <p><b>案件名：</b>{selectedProject.name}</p>
                 <p><b>発注者：</b>{selectedProject.client}</p>
                 <p><b>担当者：</b>{selectedProject.manager}</p>
                 <p><b>受注金額：</b>¥{selectedProject.amount.toLocaleString()}</p>
+                <p><b>実行予算：</b>
+                  {selectedProject.budget
+                    ? `¥${selectedProject.budget.toLocaleString()}`
+                    : "-"}
+                </p>
                 <p>
                   <b>着工日：</b>
                   {selectedProject.startDate
@@ -543,6 +661,51 @@ export default function Home() {
             {isEditing && editData && (
               <div className="mt-4 space-y-3 text-sm">
 
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    案件番号
+                  </label>
+
+                  <input
+                    value={editData.code}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      if (/^[A-Za-z0-9-]*$/.test(value)) {
+                        setEditData({ ...editData, code: value });
+                        setErrors((prev) => ({ ...prev, code: "" }));
+                      }
+                    }}
+                    className={`w-full rounded-lg border px-4 py-2 ${
+                      errors.code ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+
+                  {errors.code && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.code}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    受注日
+                  </label>
+
+                  <input
+                    type="date"
+                    value={editData.orderDate?.slice(0, 10) || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        orderDate: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                  />
+                </div>
+
                 <input
                   value={editData.name}
                   onChange={(e) => {
@@ -561,17 +724,20 @@ export default function Home() {
                   </p>
                 )}
 
-                <div>
+                <div ref={detailClientSearchRef} className="relative">
                   <label className="mb-1 block text-sm font-semibold">
                     発注者
                   </label>
 
-                  <select
-                    value={editData.client}
+                  <input
+                    value={detailClientKeyword}
                     onChange={(e) => {
+                      setDetailClientKeyword(e.target.value);
+                      setShowDetailClientList(true);
+
                       setEditData({
                         ...editData,
-                        client: e.target.value,
+                        client: "",
                       });
 
                       setErrors((prev) => ({
@@ -579,25 +745,40 @@ export default function Home() {
                         client: "",
                       }));
                     }}
+                    onFocus={() => setShowDetailClientList(true)}
+                    placeholder="発注者を検索"
                     className={`w-full rounded-lg border px-4 py-2 ${
-                      errors.client
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      errors.client ? "border-red-500" : "border-gray-300"
                     }`}
-                  >
-                    <option value="">
-                      選択してください
-                    </option>
+                  />
 
-                    {clients.map((client) => (
-                      <option
-                        key={client.id}
-                        value={client.name}
-                      >
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
+                  {showDetailClientList && (
+                    <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                      {filteredDetailClients.length > 0 ? (
+                        filteredDetailClients.map((client) => (
+                          <button
+                            type="button"
+                            key={client.id}
+                            onClick={() => {
+                              setEditData({
+                                ...editData,
+                                client: client.name,
+                              });
+                              setDetailClientKeyword(client.name);
+                              setShowDetailClientList(false);
+                            }}
+                            className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                          >
+                            {client.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-500">
+                          該当する発注者がありません
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {errors.client && (
                     <p className="mt-1 text-xs text-red-500">
@@ -606,17 +787,20 @@ export default function Home() {
                   )}
                 </div>
 
-                <div>
+                <div ref={detailManagerSearchRef} className="relative">
                   <label className="mb-1 block text-sm font-semibold">
                     担当者
                   </label>
 
-                  <select
-                    value={editData.manager}
+                  <input
+                    value={detailManagerKeyword}
                     onChange={(e) => {
+                      setDetailManagerKeyword(e.target.value);
+                      setShowDetailManagerList(true);
+
                       setEditData({
                         ...editData,
-                        manager: e.target.value,
+                        manager: "",
                       });
 
                       setErrors((prev) => ({
@@ -624,25 +808,40 @@ export default function Home() {
                         manager: "",
                       }));
                     }}
+                    onFocus={() => setShowDetailManagerList(true)}
+                    placeholder="担当者を検索"
                     className={`w-full rounded-lg border px-4 py-2 ${
-                      errors.manager
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      errors.manager ? "border-red-500" : "border-gray-300"
                     }`}
-                  >
-                    <option value="">
-                      選択してください
-                    </option>
+                  />
 
-                    {staffs.map((staff) => (
-                      <option
-                        key={staff.id}
-                        value={staff.name}
-                      >
-                        {staff.name}
-                      </option>
-                    ))}
-                  </select>
+                  {showDetailManagerList && (
+                    <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                      {filteredDetailStaffs.length > 0 ? (
+                        filteredDetailStaffs.map((staff) => (
+                          <button
+                            type="button"
+                            key={staff.id}
+                            onClick={() => {
+                              setEditData({
+                                ...editData,
+                                manager: staff.name,
+                              });
+                              setDetailManagerKeyword(staff.name);
+                              setShowDetailManagerList(false);
+                            }}
+                            className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                          >
+                            {staff.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-500">
+                          該当する担当者がありません
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {errors.manager && (
                     <p className="mt-1 text-xs text-red-500">
@@ -680,6 +879,30 @@ export default function Home() {
                 {errors.amount && (
                   <p className="text-red-500 text-xs">{errors.amount}</p>
                 )}
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    実行予算
+                  </label>
+
+                  <input
+                    value={budgetInput}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d]/g, "");
+                      setBudgetInput(value);
+                    }}
+                    onFocus={() => {
+                      setBudgetInput(budgetInput.replace(/,/g, ""));
+                    }}
+                    onBlur={() => {
+                      if (!budgetInput) return;
+                      setBudgetInput(
+                        Number(budgetInput.replace(/,/g, "")).toLocaleString("ja-JP")
+                      );
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+                  />
+                </div>
 
                 <select
                   value={editData.status}
@@ -853,7 +1076,9 @@ function ProjectsTable({
             >
               受注金額 {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="px-4 py-3 font-bold">実行予算</th>
+            <th className="px-4 py-3 font-bold text-center">実行予算</th>
+            <th className="px-4 py-3 font-bold text-center">原価率</th>
+            <th className="px-4 py-3 font-bold text-center">粗利</th>            
             <th className="px-4 py-3 font-bold">着工日</th>
             <th className="px-4 py-3 font-bold">完了日</th>
             <th className="px-4 py-3 font-bold">進捗</th>
@@ -892,11 +1117,26 @@ function ProjectsTable({
               <td className="px-4 py-3 font-semibold text-gray-900 text-center">
                 ¥{project.amount.toLocaleString() || 0}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-3 text-center">
                 {project.budget
                   ? `¥${project.budget.toLocaleString()}`
                   : "-"}
               </td>
+
+              {/* 原価率 */}
+              <td className="px-4 py-3 text-center text-sm text-gray-700">
+                {project.budget && project.amount > 0
+                  ? `${((project.budget / project.amount) * 100).toFixed(1)}%`
+                  : "-"}
+              </td>
+
+              {/* 粗利計算 */}
+              <td className="px-4 py-3 text-center font-semibold text-gray-900">
+                {project.budget
+                  ? `¥${(project.amount - project.budget).toLocaleString()}`
+                  : "-"}
+              </td>
+              
               <td className="px-4 py-3 text-sm">
                 {project.startDate
                   ? new Date(project.startDate).toLocaleDateString()
@@ -958,12 +1198,69 @@ function NewProjectForm({
   const [budget, setBudget] = useState("");
   const [orderDate, setOrderDate] = useState("");
 
+  const [clientKeyword, setClientKeyword] = useState("");
+  const [showClientList, setShowClientList] = useState(false);
+
+  const [managerKeyword, setManagerKeyword] = useState("");
+  const [showManagerList, setShowManagerList] = useState(false);
+
+  const clientSearchRef = useRef<HTMLDivElement>(null);
+  const managerSearchRef = useRef<HTMLDivElement>(null);
+
   const [errors, setErrors] = useState({
     name: "",
     client: "",
     manager: "",
     amount: "",
   });
+
+  // 外側クリック・Escで閉じる処理
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      if (
+        clientSearchRef.current &&
+        !clientSearchRef.current.contains(target)
+      ) {
+        setShowClientList(false);
+      }
+
+      if (
+        managerSearchRef.current &&
+        !managerSearchRef.current.contains(target)
+      ) {
+        setShowManagerList(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowClientList(false);
+        setShowManagerList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const filteredClients = clients.filter((clientItem) =>
+    clientItem.name
+      .toLowerCase()
+      .includes(clientKeyword.toLowerCase())
+  );
+
+  const filteredStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(managerKeyword.toLowerCase())
+  );
 
   const handleSubmit = async () => {
     if (!code || !type || !name || !client || !manager || !amount) {
@@ -1014,6 +1311,11 @@ function NewProjectForm({
     setBudget("");
     setOrderDate("");
     setStatus("未着手");
+
+    setClientKeyword("");
+    setManagerKeyword("");
+    setShowClientList(false);
+    setShowManagerList(false);
   };
 
   return (
@@ -1078,74 +1380,120 @@ function NewProjectForm({
         />
       </div>
 
-      <div>
+      <div ref={clientSearchRef} className="relative">
         <label className="mb-1 block text-sm font-semibold text-gray-800">
           発注者
         </label>
-        <select
-          value={client}
+
+        <input
+          value={clientKeyword}
           onChange={(e) => {
-            setClient(e.target.value);
+            setClientKeyword(e.target.value);
+            setShowClientList(true);
+            setClient("");
 
             setErrors((prev) => ({
               ...prev,
               client: "",
             }));
           }}
-          className={`w-full rounded-lg border px-4 py-2 ${
+          onFocus={() => setShowClientList(true)}
+          placeholder="発注者を検索"
+          className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
             errors.client
               ? "border-red-500"
               : "border-gray-300"
           }`}
-        >
-          <option value="">
-            選択してください
-          </option>
+        />
 
-          {clients.map((clientItem) => (
-            <option
-              key={clientItem.id}
-              value={clientItem.name}
-            >
-              {clientItem.name}
-            </option>
-          ))}
-        </select>
+        {showClientList && (
+          <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+            {filteredClients.length > 0 ? (
+              filteredClients.map((clientItem) => (
+                <button
+                  type="button"
+                  key={clientItem.id}
+                  onClick={() => {
+                    setClient(clientItem.name);
+                    setClientKeyword(clientItem.name);
+                    setShowClientList(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                >
+                  {clientItem.name}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                該当する発注者がありません
+              </div>
+            )}
+          </div>
+        )}
+
+        {errors.client && (
+          <p className="mt-1 text-xs text-red-500">
+            {errors.client}
+          </p>
+        )}
       </div>
 
-      <div>
+      <div ref={managerSearchRef} className="relative">
         <label className="mb-1 block text-sm font-semibold text-gray-800">
           担当者
         </label>
-        <select
-          value={manager}
+
+        <input
+          value={managerKeyword}
           onChange={(e) => {
-            setManager(e.target.value);
+            setManagerKeyword(e.target.value);
+            setShowManagerList(true);
+            setManager("");
 
             setErrors((prev) => ({
               ...prev,
               manager: "",
             }));
           }}
-          className={`w-full rounded-lg border px-4 py-2 ${
+          onFocus={() => setShowManagerList(true)}
+          placeholder="担当者を検索"
+          className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
             errors.manager
               ? "border-red-500"
               : "border-gray-300"
           }`}
-        >
-          <option value="">
-            選択してください
-          </option>
+        />
 
-          {staffs.map((staff) => (
-            <option
-              key={staff.id}
-              value={staff.name}
-            >
-              {staff.name}
-            </option>
-          ))}
-        </select>
+        {showManagerList && (
+          <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+            {filteredStaffs.length > 0 ? (
+              filteredStaffs.map((staff) => (
+                <button
+                  type="button"
+                  key={staff.id}
+                  onClick={() => {
+                    setManager(staff.name);
+                    setManagerKeyword(staff.name);
+                    setShowManagerList(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                >
+                  {staff.name}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                該当する担当者がありません
+              </div>
+            )}
+          </div>
+        )}
+
+        {errors.manager && (
+          <p className="mt-1 text-xs text-red-500">
+            {errors.manager}
+          </p>
+        )}
       </div>
 
       <div>
@@ -1235,17 +1583,34 @@ function EditModal({
   clients: any[];
   staffs: any[];
 }) {
-  const [amount, setAmount] = useState(
-    project.amount.toLocaleString()
-  );
-  // const [status, setStatus] = useState(project.status);
-  const [errors, setErrors] = useState({
-    name: "",
-    client: "",
-    manager: "",
-    amount: "",
-  });
   const [editData, setEditData] = useState<Project>(project);
+
+  const [amount, setAmount] = useState(
+    project.amount.toLocaleString("ja-JP")
+  );
+
+  const [budget, setBudget] = useState(
+    project.budget
+      ? project.budget.toLocaleString("ja-JP")
+      : ""
+  );
+
+  const [clientKeyword, setClientKeyword] = useState(project.client);
+  const [showClientList, setShowClientList] = useState(false);
+
+  const [managerKeyword, setManagerKeyword] = useState(project.manager);
+  const [showManagerList, setShowManagerList] = useState(false);
+
+  const clientSearchRef = useRef<HTMLDivElement>(null);
+  const managerSearchRef = useRef<HTMLDivElement>(null);
+
+  const [errors, setErrors] = useState<{
+    code?: string;
+    name?: string;
+    client?: string;
+    manager?: string;
+    amount?: string;
+  }>({});
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1261,9 +1626,71 @@ function EditModal({
     };
   }, [onClose]);
 
+  // project変更時の同期
   useEffect(() => {
     setEditData(project);
+
+    setAmount(project.amount.toLocaleString("ja-JP"));
+
+    setBudget(
+      project.budget
+        ? project.budget.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setClientKeyword(project.client);
+    setManagerKeyword(project.manager);
   }, [project]);
+
+  // 外側クリック処理
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      if (
+        clientSearchRef.current &&
+        !clientSearchRef.current.contains(target)
+      ) {
+        setShowClientList(false);
+      }
+
+      if (
+        managerSearchRef.current &&
+        !managerSearchRef.current.contains(target)
+      ) {
+        setShowManagerList(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowClientList(false);
+        setShowManagerList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  // 絞り込み配列
+  const filteredClients = clients.filter((client) =>
+    client.name
+      .toLowerCase()
+      .includes(clientKeyword.toLowerCase())
+  );
+  
+  // 絞り込み配列
+  const filteredStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(managerKeyword.toLowerCase())
+  );
 
   return (
     <div
@@ -1277,6 +1704,40 @@ function EditModal({
         <h2 className="text-xl font-bold">案件編集</h2>
 
         <div className="mt-6 space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              案件番号
+            </label>
+
+            <input
+              value={editData.code}
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (/^[A-Za-z0-9-]*$/.test(value)) {
+                  setEditData({
+                    ...editData,
+                    code: value,
+                  });
+
+                  setErrors((prev) => ({
+                    ...prev,
+                    code: "",
+                  }));
+                }
+              }}
+              className={`w-full rounded-lg border px-4 py-2 ${
+                errors.code ? "border-red-500" : "border-gray-300"
+              }`}
+            />
+
+            {errors.code && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.code}
+              </p>
+            )}
+          </div>
+
           <input
             value={editData.name}
             onChange={(e) => {
@@ -1303,102 +1764,222 @@ function EditModal({
             </p>
           )}
 
-          <select
-            value={editData.client}
-            onChange={(e) =>
-              setEditData({
-                ...editData,
-                client: e.target.value,
-              })
-            }
-            className="w-full border px-3 py-2 rounded"
-          >
-            <option value="">
-              選択してください
-            </option>
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              受注日
+            </label>
 
-            {clients.map((client) => (
-              <option
-                key={client.id}
-                value={client.name}
-              >
-                {client.name}
-              </option>
-            ))}
-          </select>
+            <input
+              type="date"
+              value={editData.orderDate?.slice(0, 10) || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  orderDate: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-2"
+            />
+          </div>
 
-          {errors.client && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.client}
-            </p>
-          )}
+          <div ref={clientSearchRef} className="relative">
+            <label className="mb-1 block text-sm font-semibold">
+              発注者
+            </label>
 
-          <select
-            value={editData.manager}
-            onChange={(e) =>
-              setEditData({
-                ...editData,
-                manager: e.target.value,
-              })
-            }
-            className="w-full border px-3 py-2 rounded"
-          >
-            <option value="">
-              選択してください
-            </option>
+            <input
+              value={clientKeyword}
+              onChange={(e) => {
+                setClientKeyword(e.target.value);
+                setShowClientList(true);
 
-            {staffs.map((staff) => (
-              <option
-                key={staff.id}
-                value={staff.name}
-              >
-                {staff.name}
-              </option>
-            ))}
-          </select>
+                setEditData({
+                  ...editData,
+                  client: "",
+                });
 
-          {errors.manager && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.manager}
-            </p>
-          )}
+                setErrors((prev) => ({
+                  ...prev,
+                  client: "",
+                }));
+              }}
+              onFocus={() => setShowClientList(true)}
+              placeholder="発注者を検索"
+              className={`w-full rounded-lg border px-4 py-2 ${
+                errors.client ? "border-red-500" : "border-gray-300"
+              }`}
+            />
 
-          <input
-            type="text"
-            value={amount}
-            onChange={(e) => {
-              const raw = e.target.value.replace(/,/g, "");
+            {showClientList && (
+              <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                {filteredClients.length > 0 ? (
+                  filteredClients.map((client) => (
+                    <button
+                      type="button"
+                      key={client.id}
+                      onClick={() => {
+                        setEditData({
+                          ...editData,
+                          client: client.name,
+                        });
 
-              if (!/^\d*$/.test(raw)) return;
+                        setClientKeyword(client.name);
+                        setShowClientList(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                    >
+                      {client.name}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-gray-500">
+                    該当する発注者がありません
+                  </div>
+                )}
+              </div>
+            )}
 
-              setAmount(raw);
+            {errors.client && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.client}
+              </p>
+            )}
+          </div>
 
-              setErrors((prev) => ({
-                ...prev,
-                amount: "",
-              }));
-            }}
-            onFocus={() => {
-              setAmount(amount.replace(/,/g, ""));
-            }}
-            onBlur={() => {
-              if (!amount) return;
+          <div ref={managerSearchRef} className="relative">
+            <label className="mb-1 block text-sm font-semibold">
+              担当者
+            </label>
 
-              setAmount(
-                Number(amount.replace(/,/g, "")).toLocaleString()
-              );
-            }}
-            className={`w-full rounded-lg border px-4 py-2 text-right ${
-              errors.amount
-                ? "border-red-500"
-                : "border-gray-300"
-            }`}
-          />
-          {errors.amount && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.amount}
-            </p>
-          )}
+            <input
+              value={managerKeyword}
+              onChange={(e) => {
+                setManagerKeyword(e.target.value);
+                setShowManagerList(true);
+
+                setEditData({
+                  ...editData,
+                  manager: "",
+                });
+
+                setErrors((prev) => ({
+                  ...prev,
+                  manager: "",
+                }));
+              }}
+              onFocus={() => setShowManagerList(true)}
+              placeholder="担当者を検索"
+              className={`w-full rounded-lg border px-4 py-2 ${
+                errors.manager ? "border-red-500" : "border-gray-300"
+              }`}
+            />
+
+            {showManagerList && (
+              <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                {filteredStaffs.length > 0 ? (
+                  filteredStaffs.map((staff) => (
+                    <button
+                      type="button"
+                      key={staff.id}
+                      onClick={() => {
+                        setEditData({
+                          ...editData,
+                          manager: staff.name,
+                        });
+
+                        setManagerKeyword(staff.name);
+                        setShowManagerList(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                    >
+                      {staff.name}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-gray-500">
+                    該当する担当者がありません
+                  </div>
+                )}
+              </div>
+            )}
+
+            {errors.manager && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.manager}
+              </p>
+            )}
+          </div>
+
+          <div className="relative">
+            <label className="mb-1 block text-sm font-semibold">
+              受注金額
+            </label>
+
+            <input
+              type="text"
+              value={amount}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, "");
+
+                if (!/^\d*$/.test(raw)) return;
+
+                setAmount(raw);
+
+                setErrors((prev) => ({
+                  ...prev,
+                  amount: "",
+                }));
+              }}
+              onFocus={() => {
+                setAmount(amount.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!amount) return;
+
+                setAmount(
+                  Number(amount.replace(/,/g, "")).toLocaleString()
+                );
+              }}
+              className={`w-full rounded-lg border px-4 py-2 text-right ${
+                errors.amount
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
+            />
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.amount}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              実行予算
+            </label>
+
+            <input
+              value={budget}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, "");
+
+                if (!/^\d*$/.test(raw)) return;
+
+                setBudget(raw);
+              }}
+              onFocus={() => {
+                setBudget(budget.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!budget) return;
+
+                setBudget(
+                  Number(budget.replace(/,/g, "")).toLocaleString("ja-JP")
+                );
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+            />
+          </div>
 
           <select
             value={editData.status}
@@ -1456,50 +2037,56 @@ function EditModal({
 
           <button
             onClick={() => {
-              const newErrors = {
-                name: "",
-                client: "",
-                manager: "",
-                amount: "",
-              };
+              const newErrors: {
+                code?: string;
+                name?: string;
+                client?: string;
+                manager?: string;
+                amount?: string;
+              } = {};
+
+              const numericAmount = Number(
+                amount.replace(/,/g, "")
+              );
+
+              const numericBudget = budget
+                ? Number(budget.replace(/,/g, ""))
+                : undefined;
+
+              if (!editData.code.trim()) {
+                newErrors.code = "案件番号を入力してください";
+              }
+
+              if (!/^[A-Za-z0-9-]+$/.test(editData.code)) {
+                newErrors.code =
+                  "案件番号は半角英数字とハイフンのみ使用できます";
+              }
 
               if (!editData.name.trim()) {
-                newErrors.name =
-                  "案件名を入力してください";
+                newErrors.name = "案件名を入力してください";
               }
 
               if (!editData.client.trim()) {
-                newErrors.client =
-                  "発注者を入力してください";
+                newErrors.client = "発注者を選択してください";
               }
 
               if (!editData.manager.trim()) {
-                newErrors.manager =
-                  "担当者を入力してください";
+                newErrors.manager = "担当者を選択してください";
               }
 
-              if (
-                Number(amount.replace(/,/g, "")) <= 0
-              ) {
+              if (!numericAmount || numericAmount <= 0) {
                 newErrors.amount =
                   "受注金額は1以上で入力してください";
               }
 
               setErrors(newErrors);
 
-              const hasError =
-                newErrors.name ||
-                newErrors.client ||
-                newErrors.manager ||
-                newErrors.amount;
-
-              if (hasError) return;
+              if (Object.keys(newErrors).length > 0) return;
 
               onSave({
                 ...editData,
-                amount: Number(
-                  amount.replace(/,/g, "")
-                ),
+                amount: numericAmount,
+                budget: numericBudget,
               });
             }}
             className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"
@@ -1512,7 +2099,11 @@ function EditModal({
   );
 }
 
-function SettingsPage() {
+function SettingsPage({
+    onMasterUpdated,
+  }: {
+    onMasterUpdated: () => void;
+  }) {
 
   const [clients, setClients] = useState<any[]>([]);
   const [clientName, setClientName] = useState("");
@@ -1551,7 +2142,8 @@ function SettingsPage() {
     });
 
     setClientName("");
-    fetchClients();
+    await fetchClients();
+    onMasterUpdated();
   };
 
   const addStaff = async () => {
@@ -1568,7 +2160,8 @@ function SettingsPage() {
     });
 
     setStaffName("");
-    fetchStaffs();
+    await fetchStaffs();
+    onMasterUpdated();
   };
 
   const deleteClient = async (id: number) => {
@@ -1580,7 +2173,8 @@ function SettingsPage() {
       method: "DELETE",
     });
 
-    fetchClients();
+    await fetchClients();
+    onMasterUpdated();
   };
 
   const deletestaff = async (id: number) => {
@@ -1592,7 +2186,8 @@ function SettingsPage() {
       method: "DELETE",
     });
 
-    fetchStaffs();
+    await fetchStaffs();
+    onMasterUpdated();
   };
 
   const updateClient = async (id: number) => {
@@ -1610,7 +2205,8 @@ function SettingsPage() {
 
     setEditingClientId(null);
     setEditingClientName("");
-    fetchClients();
+    await fetchClients();
+    onMasterUpdated();
   };
 
   const updateStaff = async (id: number) => {
@@ -1628,7 +2224,8 @@ function SettingsPage() {
 
     setEditingStaffId(null);
     setEditingStaffName("");
-    fetchStaffs();
+    await fetchStaffs();
+    onMasterUpdated();
   };
 
   useEffect(() => {
