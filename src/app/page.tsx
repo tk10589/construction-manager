@@ -460,10 +460,10 @@ export default function Home() {
       .includes(detailManagerKeyword.toLowerCase())
   );
 
-  return (
+  return (   
     <main className="min-h-screen bg-gray-100 text-gray-900">
-      <div className="flex min-h-screen">
-        <aside className="w-64 bg-gray-900 p-6 text-white">
+      <div className="flex min-h-screen overflow-hidden">
+        <aside className="sticky top-0 h-screen w-64 shrink-0 bg-gray-900 p-6 text-white">
           <h1 className="text-xl font-bold">施工管理</h1>
           <p className="mt-2 text-sm text-gray-300">Construction Manager</p>
           
@@ -517,8 +517,8 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="flex-1 p-8">
-          <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <section className="min-w-0 flex-1 overflow-hidden p-8">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
             <p className="text-sm font-bold text-blue-700">Dashboard</p>
 
             <h2 className="mt-2 text-3xl font-bold text-gray-900">
@@ -592,7 +592,7 @@ export default function Home() {
       )}
       {deletingProject && (
         <div
-          className="fixed inset-0 flex items-center justify-center bg-black/40"
+          className="fixed inset-0  z-[110] flex items-center justify-center bg-black/40"
           onClick={() => setDeletingProject(null)} // 背景クリックで閉じる
         >
           <div
@@ -635,7 +635,7 @@ export default function Home() {
 
       {selectedProject && (
         <div
-          className="fixed inset-0 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40"
           onClick={() => setSelectedProject(null)}
         >
           <div
@@ -1099,12 +1099,12 @@ function ProjectsTable({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-300">
-      <table className="w-full border-collapse bg-white text-sm">
-        <thead className="bg-gray-100 text-left text-gray-900">
+    <div className="max-h-[600px] overflow-auto rounded-lg border border-gray-300">
+      <table className="min-w-[1700px] table-fixed border-collapse bg-white text-sm">
+        <thead className="sticky top-0 z-10 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
-              className="px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
+              className="sticky left-0 z-40 w-[120px] min-w-[120px] bg-gray-100  px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
               onClick={() => {
                 if (sortKey === "code") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -1116,8 +1116,12 @@ function ProjectsTable({
             >
               案件番号 {sortKey === "code" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="px-4 py-3 font-bold">種別</th>
-            <th className="px-4 py-3 font-bold">案件名</th>
+            <th className="sticky left-[120px] z-40 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
+              種別
+              </th>
+            <th className="sticky left-[220px] z-40 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
+              案件名
+              </th>
             <th className="px-4 py-3 font-bold">受注日</th>
             <th className="px-4 py-3 font-bold">発注者</th>
             <th className="px-4 py-3 font-bold">担当者</th>
@@ -1139,7 +1143,7 @@ function ProjectsTable({
             <th className="px-4 py-3 font-bold text-center">粗利</th>            
             <th className="px-4 py-3 font-bold">着工日</th>
             <th className="px-4 py-3 font-bold">完了日</th>
-            <th className="px-4 py-3 font-bold">進捗</th>
+            <th className="w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
             <th className="px-4 py-3 font-bold">操作</th>
           </tr>
         </thead>
@@ -1147,10 +1151,10 @@ function ProjectsTable({
         <tbody>
           {projects.map((project) => (
             <tr key={project.id} className="border-t border-gray-200">
-              <td className="px-4 py-3 font-semibold text-gray-900">
+              <td className="sticky left-0 z-30 w-[120px] min-w-[120px] bg-white px-4 py-3 font-semibold text-gray-900">
                 {project.code}
               </td>
-              <td className="px-4 py-3">
+              <td className="sticky left-[120px] z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(
                     project.type
@@ -1160,7 +1164,7 @@ function ProjectsTable({
                 </span>
               </td>
               <td
-                className="px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline"
+                className="sticky left-[220px] z-30 w-[260px] min-w-[260px] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline"
                 onClick={() => setSelectedProject(project)}
               >
                 {project.name}
@@ -1206,7 +1210,7 @@ function ProjectsTable({
                   ? new Date(project.endDate).toLocaleDateString()
                   : "-"}
               </td>
-              <td className="px-4 py-3">
+              <td className="w-[100px] min-w-[100px] px-4 py-3 whitespace-nowrap">
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
                   {project.status}
                 </span>
@@ -1758,7 +1762,7 @@ function EditModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -2773,7 +2777,7 @@ function MasterModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[10] flex items-center justify-center bg-black/40"
       onClick={onClose}
     >
       <div
