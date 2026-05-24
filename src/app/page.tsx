@@ -26,8 +26,8 @@ type Project = {
 
   status: string;
 
-  clients: any[];
-  staffs: any[];
+  // clients: any[];
+  // staffs: any[];
   
   orderDate?: string;
 
@@ -38,6 +38,9 @@ type Project = {
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(menuItems[0]);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  const [projectTypes, setProjectTypes] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [codeSort, setCodeSort] = useState<"asc" | "desc">("asc");
@@ -69,6 +72,7 @@ export default function Home() {
 
   type FormErrors = {
     code?: string;
+    type?: string;
     name?: string;
     client?: string;
     manager?: string;
@@ -93,8 +97,12 @@ export default function Home() {
     const staffRes = await fetch("/api/staffs");
     const staffData = await staffRes.json();
 
+    const typeRes = await fetch("/api/project-types");
+    const typeData = await typeRes.json();
+
     setClients(clientData);
     setStaffs(staffData);
+    setProjectTypes(typeData);
   };
 
   useEffect(() => {
@@ -273,6 +281,10 @@ export default function Home() {
       newErrors.name = "案件名は必須です";
     }
 
+    if (!editData?.type) {
+      newErrors.type = "種別を選択してください";
+    }
+
     if (!editData?.client) {
       newErrors.client = "発注者は必須です";
     }
@@ -310,6 +322,10 @@ export default function Home() {
     if (!/^[A-Za-z0-9-]+$/.test(editData.code)) {
       newErrors.code =
         "案件番号は半角英数字とハイフンのみ使用できます";
+    }
+
+    if (!editData.type) {
+      newErrors.type = "種別を選択してください";
     }
 
     if (!editData.name.trim()) {
@@ -460,20 +476,22 @@ export default function Home() {
             />
 
             <div className="mb-4">
-              <p className="mb-1 text-xs text-gray-400">
+              <p className="mb-1 text-xs text-gray-100">
                 種別フィルター
               </p>
 
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-white shadow-sm"
+                className="rounded-lg border px-3 py-2 text-gray-300"
               >
                 <option value="ALL">全て</option>
-                <option value="F">自火報・防排煙</option>
-                <option value="FE">弱電設備</option>
-                <option value="E">環境設備</option>
-                <option value="MM">点検・維持</option>
+
+                {projectTypes.map((type) => (
+                  <option key={type.id} value={type.code}>
+                    {type.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -539,9 +557,15 @@ export default function Home() {
                   onAdd={addProject}
                   clients={clients}
                   staffs={staffs} 
+                  projectTypes={projectTypes}
                 />
               ) : selectedMenu.id === "settings" ? (
-                <SettingsPage onMasterUpdated={fetchMasters} />
+                <SettingsPage
+                  onMasterUpdated={async () => {
+                    await fetchMasters();
+                    await fetchProjects();
+                  }}
+                />
               ) : (
                 <div className="rounded-lg border border-gray-300 p-6">
                   <h3 className="text-lg font-bold text-gray-900">
@@ -563,6 +587,7 @@ export default function Home() {
           onSave={updateProject}
           clients={clients}
           staffs={staffs}
+          projectTypes={projectTypes}
         />
       )}
       {deletingProject && (
@@ -705,6 +730,39 @@ export default function Home() {
                     className="w-full rounded-lg border border-gray-300 px-4 py-2"
                   />
                 </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    種別
+                  </label>
+
+                  <select
+                    value={editData.type}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        type: e.target.value,
+                      })
+                    }
+                    className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
+                      errors.type ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="">選択してください</option>
+
+                    {projectTypes.map((type) => (
+                      <option key={type.id} value={type.code}>
+                        {type.name}（{type.code}）
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.type && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.type}
+                  </p>
+                )}
+                </div>                
 
                 <input
                   value={editData.name}
@@ -1180,17 +1238,19 @@ function NewProjectForm({
   onAdd,
   clients,
   staffs,
+  projectTypes,
 }: {
   onAdd: (project: Omit<Project, "id">) => Promise<boolean>;
   clients: any[];
   staffs: any[];
+  projectTypes: any[];
 }) {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [manager, setManager] = useState("");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("未着手");
-  const [type, setType] = useState("F");
+  const [type, setType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [staff, setStaff] = useState("");
@@ -1295,8 +1355,8 @@ function NewProjectForm({
       startDate,
       endDate,
 
-      clients,
-      staffs,
+      // clients,
+      // staffs,
     });
     // リセット（成功後）
     if (!success) {
@@ -1328,12 +1388,15 @@ function NewProjectForm({
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
         >
-          <option value="F">消防（F）</option>
-          <option value="FE">防火設備（FE）</option>
-          <option value="E">電気（E）</option>
-          <option value="MM">保守（MM）</option>
+          <option value="">選択してください</option>
+
+          {projectTypes.map((type) => (
+            <option key={type.id} value={type.code}>
+              {type.name}（{type.code}）
+            </option>
+          ))}
         </select>
       </div>
 
@@ -1574,14 +1637,14 @@ function EditModal({
   onSave,
   clients,
   staffs,
+  projectTypes,
 }: {
   project: Project;
   onClose: () => void;
-
   onSave: (project: Project) => void;
-
   clients: any[];
   staffs: any[];
+  projectTypes: any[];
 }) {
   const [editData, setEditData] = useState<Project>(project);
 
@@ -1704,6 +1767,24 @@ function EditModal({
         <h2 className="text-xl font-bold">案件編集</h2>
 
         <div className="mt-6 space-y-4">
+          <select
+            value={editData.type}
+            onChange={(e) =>
+              setEditData({
+                ...editData,
+                type: e.target.value,
+              })
+            }
+            className="w-full rounded-lg border px-4 py-2"
+          >
+            <option value="">選択してください</option>
+
+            {projectTypes.map((type) => (
+              <option key={type.id} value={type.code}>
+                {type.name}（{type.code}）
+              </option>
+            ))}
+          </select>
           <div>
             <label className="mb-1 block text-sm font-semibold">
               案件番号
@@ -2114,6 +2195,107 @@ function SettingsPage({
   const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
   const [editingStaffName, setEditingStaffName] = useState("");
 
+  const [projectTypes, setProjectTypes] = useState<any[]>([]);
+  const [typeCode, setTypeCode] = useState("");
+  const [typeName, setTypeName] = useState("");
+
+  const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
+  const [editingTypeCode, setEditingTypeCode] = useState("");
+  const [editingTypeName, setEditingTypeName] = useState("");
+
+  const [masterModal, setMasterModal] = useState<{
+    target: "type" | "client" | "staff";
+    action: "add" | "edit" | "delete" | "list";
+  } | null>(null);
+
+  // 種別追加関数
+  const addProjectType = async () => {
+    if (!typeCode.trim() || !typeName.trim()) {
+      alert("種別コードと種別名を入力してください");
+      return;
+    }
+
+    await fetch("/api/project-types", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: typeCode,
+        name: typeName,
+      }),
+    });
+
+    setTypeCode("");
+    setTypeName("");
+
+    await fetchProjectTypes();
+    onMasterUpdated();
+  };
+
+  // 種別取得関数
+  const fetchProjectTypes = async () => {
+    const res = await fetch("/api/project-types");
+    const data = await res.json();
+
+    setProjectTypes(data);
+  };
+
+  // 種別編集関数
+  const updateProjectType = async (id: number) => {
+    if (!editingTypeCode.trim() || !editingTypeName.trim()) {
+      alert("種別コードと種別名を入力してください");
+      return;
+    }
+
+    await fetch(`/api/project-types/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: editingTypeCode,
+        name: editingTypeName,
+      }),
+    });
+
+    setEditingTypeId(null);
+    setEditingTypeCode("");
+    setEditingTypeName("");
+
+    await fetchProjectTypes();
+    onMasterUpdated();
+  };
+
+  // 種別削除関数
+  const deleteProjectType = async (id: number) => {
+    const ok = confirm("この種別を削除しますか？");
+
+    if (!ok) return;
+
+    const response = await fetch(
+      `/api/project-types/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+
+      alert(
+        errorData.error ||
+          "種別の削除に失敗しました"
+      );
+
+      return;
+    }
+
+    await fetchProjectTypes();
+    onMasterUpdated();
+  };
+
+  // 発注者取得関数
   const fetchClients = async () => {
     const response = await fetch("/api/clients");
     const data = await response.json();
@@ -2121,6 +2303,7 @@ function SettingsPage({
     setClients(data);
   };
 
+  // 担当者取得関数
   const fetchStaffs = async () => {
     const response = await fetch("/api/staffs");
     const data = await response.json();
@@ -2128,6 +2311,7 @@ function SettingsPage({
     setStaffs(data);
   };
 
+  // 発注者追加関数
   const addClient = async () => {
     if (!clientName) return;
 
@@ -2146,6 +2330,7 @@ function SettingsPage({
     onMasterUpdated();
   };
 
+  // 担当者追加関数
   const addStaff = async () => {
     if (!staffName) return;
 
@@ -2164,32 +2349,57 @@ function SettingsPage({
     onMasterUpdated();
   };
 
+  // 発注者削除関数
   const deleteClient = async (id: number) => {
-    const ok = confirm("削除しますか？");
+    const ok = confirm("この発注者を削除しますか？");
 
     if (!ok) return;
 
-    await fetch(`/api/clients/${id}`, {
+    const response = await fetch(`/api/clients/${id}`, {
       method: "DELETE",
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+
+      alert(
+        errorData.error ||
+          "発注者の削除に失敗しました"
+      );
+
+      return;
+    }
 
     await fetchClients();
     onMasterUpdated();
   };
 
-  const deletestaff = async (id: number) => {
-    const ok = confirm("削除しますか？");
+  // 担当者削除関数
+  const deleteStaff = async (id: number) => {
+    const ok = confirm("この担当者を削除しますか？");
 
     if (!ok) return;
 
-    await fetch(`/api/staffs/${id}`, {
+    const response = await fetch(`/api/staffs/${id}`, {
       method: "DELETE",
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+
+      alert(
+        errorData.error ||
+          "担当者の削除に失敗しました"
+      );
+
+      return;
+    }
 
     await fetchStaffs();
     onMasterUpdated();
   };
 
+  // 発注者編集関数
   const updateClient = async (id: number) => {
     if (!editingClientName.trim()) return;
 
@@ -2209,6 +2419,7 @@ function SettingsPage({
     onMasterUpdated();
   };
 
+  // 担当者編集関数
   const updateStaff = async (id: number) => {
     if (!editingStaffName.trim()) return;
 
@@ -2230,166 +2441,540 @@ function SettingsPage({
 
   useEffect(() => {
     fetchClients();
-  }, []);
-
-  useEffect(() => {
     fetchStaffs();
+    fetchProjectTypes();
   }, []);
 
   return (
+    
     <div className="space-y-6">
+      <div className="space-y-3">
+        <MasterRow
+          title="種別管理"
+          onAdd={() =>
+            setMasterModal({
+              target: "type",
+              action: "add",
+            })
+          }
+          onEdit={() =>
+            setMasterModal({
+              target: "type",
+              action: "edit",
+            })
+          }
+          onDelete={() =>
+            setMasterModal({
+              target: "type",
+              action: "delete",
+            })
+          }
+          onList={() =>
+            setMasterModal({
+              target: "type",
+              action: "list",
+            })
+          }
+        />
 
-      <div className="max-w-3xl rounded-lg border border-gray-300 p-6">
-        <h3 className="text-lg font-bold">
-          発注者管理
-        </h3>
-        <div className="mt-4 flex gap-2">
-          <input
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            className="border px-3 py-2 rounded w-full"
-            placeholder="発注者名"
-          />
+        <MasterRow
+          title="発注者管理"
+          onAdd={() =>
+            setMasterModal({
+              target: "client",
+              action: "add",
+            })
+          }
+          onEdit={() =>
+            setMasterModal({
+              target: "client",
+              action: "edit",
+            })
+          }
+          onDelete={() =>
+            setMasterModal({
+              target: "client",
+              action: "delete",
+            })
+          }
+          onList={() =>
+            setMasterModal({
+              target: "client",
+              action: "list",
+            })
+          }
+        />
 
-          <button
-            onClick={addClient}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white"
-          >
-            登録
-          </button>
-        </div>
-
-        <div className="mt-4 max-h-40 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
-          {clients.map((client) => (
-            <div
-              key={client.id}
-              className="flex items-center justify-between rounded border px-3 py-2"
-            >
-              {editingClientId === client.id ? (
-                <div className="flex flex-1 gap-2">
-                  <input
-                    value={editingClientName}
-                    onChange={(e) => setEditingClientName(e.target.value)}
-                    className="w-full rounded border px-2 py-1"
-                  />
-
-                  <button
-                    onClick={() => updateClient(client.id)}
-                    className="rounded bg-green-600 px-2 py-1 text-xs text-white"
-                  >
-                    保存
-                  </button>
-
-                  <button
-                    onClick={() => setEditingClientId(null)}
-                    className="rounded bg-gray-400 px-2 py-1 text-xs text-white"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span>{client.name}</span>
-
-                  <div className="space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingClientId(client.id);
-                        setEditingClientName(client.name);
-                      }}
-                      className="rounded bg-blue-500 px-2 py-1 text-xs text-white"
-                    >
-                      編集
-                    </button>
-
-                    <button
-                      onClick={() => deleteClient(client.id)}
-                      className="rounded bg-red-500 px-2 py-1 text-xs text-white"
-                    >
-                      削除
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+        <MasterRow
+          title="担当者管理"
+          onAdd={() =>
+            setMasterModal({
+              target: "staff",
+              action: "add",
+            })
+          }
+          onEdit={() =>
+            setMasterModal({
+              target: "staff",
+              action: "edit",
+            })
+          }
+          onDelete={() =>
+            setMasterModal({
+              target: "staff",
+              action: "delete",
+            })
+          }
+          onList={() =>
+            setMasterModal({
+              target: "staff",
+              action: "list",
+            })
+          }
+        />
       </div>
+    
+      {masterModal && (
+        <MasterModal
+          target={masterModal.target}
+          action={masterModal.action}
+          clients={clients}
+          staffs={staffs}
+          projectTypes={projectTypes}
+          onClose={() => setMasterModal(null)}
+          onMasterUpdated={async () => {
+            await fetchClients();
+            await fetchStaffs();
+            await fetchProjectTypes();
+            onMasterUpdated();
+          }}
+        />
+      )}
+      
+    </div>
+  );
+}
 
-      <div className="max-w-3xl rounded-lg border border-gray-300 p-6">
-        <h3 className="text-lg font-bold">
-          担当者管理
-        </h3>
-        <div className="mt-4 flex gap-2">
-          <input
-            value={staffName}
-            onChange={(e) => setStaffName(e.target.value)}
-            className="border px-3 py-2 rounded w-full"
-            placeholder="担当者名"
-          />
+function MasterRow({
+  title,
+  onAdd,
+  onEdit,
+  onDelete,
+  onList,
+}: {
+  title: string;
+  onAdd: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onList: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm">
+      <h3 className="font-bold text-gray-900">
+        {title}
+      </h3>
 
-          <button
-            onClick={addStaff}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white"
-          >
-            登録
-          </button>
-        </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onAdd}
+          className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+        >
+          追加
+        </button>
 
-        <div className="mt-4 max-h-40 space-y-2 overflow-y-auto rounded border border-gray-200 p-2">
-          {staffs.map((staff) => (
-            <div
-              key={staff.id}
-              className="flex items-center justify-between rounded border px-3 py-2"
-            >
-              {editingStaffId === staff.id ? (
-                <div className="flex flex-1 gap-2">
-                  <input
-                    value={editingStaffName}
-                    onChange={(e) => setEditingStaffName(e.target.value)}
-                    className="w-full rounded border px-2 py-1"
-                  />
+        <button
+          onClick={onEdit}
+          className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
+        >
+          編集
+        </button>
 
-                  <button
-                    onClick={() => updateStaff(staff.id)}
-                    className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+        <button
+          onClick={onDelete}
+          className="rounded bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600"
+        >
+          削除
+        </button>
+
+        <button
+          onClick={onList}
+          className="rounded bg-gray-600 px-3 py-1 text-sm text-white hover:bg-gray-700"
+        >
+          一覧
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MasterModal({
+  target,
+  action,
+  clients,
+  staffs,
+  projectTypes,
+  onClose,
+  onMasterUpdated,
+}: {
+  target: "type" | "client" | "staff";
+  action: "add" | "edit" | "delete" | "list";
+  clients: any[];
+  staffs: any[];
+  projectTypes: any[];
+  onClose: () => void;
+  onMasterUpdated: () => void | Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [editingCode, setEditingCode] = useState("");
+
+  const titleMap = {
+    type: "種別",
+    client: "発注者",
+    staff: "担当者",
+  };
+
+  const actionMap = {
+    add: "追加",
+    edit: "編集",
+    delete: "削除",
+    list: "登録内容一覧",
+  };
+
+  const items =
+    target === "type"
+      ? projectTypes
+      : target === "client"
+      ? clients
+      : staffs;
+  
+  const baseUrl =
+    target === "type"
+      ? "/api/project-types"
+      : target === "client"
+      ? "/api/clients"
+      : "/api/staffs";
+  
+  const handleAdd = async () => {
+    setError("");
+
+    if (target === "type") {
+      if (!code.trim() || !name.trim()) {
+        setError("種別コードと種別名を入力してください");
+        return;
+      }
+
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code,
+          name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "登録に失敗しました");
+        return;
+      }
+    } else {
+      if (!name.trim()) {
+        setError("名称を入力してください");
+        return;
+      }
+
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "登録に失敗しました");
+        return;
+      }
+    }
+
+    setName("");
+    setCode("");
+
+    await onMasterUpdated();
+    onClose();
+  };
+
+  const handleUpdate = async () => {
+    setError("");
+
+    if (!editingItemId) return;
+
+    if (target === "type") {
+      if (!editingCode.trim() || !editingName.trim()) {
+        setError("種別コードと種別名を入力してください");
+        return;
+      }
+
+      const response = await fetch(`${baseUrl}/${editingItemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: editingCode,
+          name: editingName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "更新に失敗しました");
+        return;
+      }
+    } else {
+      if (!editingName.trim()) {
+        setError("名称を入力してください");
+        return;
+      }
+
+      const response = await fetch(`${baseUrl}/${editingItemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editingName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "更新に失敗しました");
+        return;
+      }
+    }
+
+    setEditingItemId(null);
+    setEditingName("");
+    setEditingCode("");
+
+    await onMasterUpdated();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold text-gray-900">
+          {titleMap[target]}管理 - {actionMap[action]}
+        </h2>
+
+        <div className="mt-4">
+          {action === "list" ? (
+            <div className="max-h-80 overflow-y-auto rounded border border-gray-200">
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border-b border-gray-100 px-4 py-2 text-sm text-gray-800 last:border-b-0"
                   >
-                    保存
-                  </button>
-
-                  <button
-                    onClick={() => setEditingStaffId(null)}
-                    className="rounded bg-gray-400 px-2 py-1 text-xs text-white"
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span>{staff.name}</span>
-
-                  <div className="space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingStaffId(staff.id);
-                        setEditingStaffName(staff.name);
-                      }}
-                      className="rounded bg-blue-500 px-2 py-1 text-xs text-white"
-                    >
-                      編集
-                    </button>
-
-                    <button
-                      onClick={() => deletestaff(staff.id)}
-                      className="rounded bg-red-500 px-2 py-1 text-xs text-white"
-                    >
-                      削除
-                    </button>
+                    {target === "type" ? (
+                      <span>
+                        <b>{item.code}</b>：{item.name}
+                      </span>
+                    ) : (
+                      <span>{item.name}</span>
+                    )}
                   </div>
-                </>
+                ))
+              ) : (
+                <p className="px-4 py-3 text-sm text-gray-500">
+                  登録データがありません。
+                </p>
               )}
             </div>
-          ))}
+          ) : action === "add" ? (
+            <div className="space-y-4">
+              {target === "type" && (
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    種別コード
+                  </label>
+
+                  <input
+                    value={code}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      if (/^[A-Za-z0-9-]*$/.test(value)) {
+                        setCode(value);
+                      }
+                    }}
+                    placeholder="例: F"
+                    className="w-full rounded border px-3 py-2"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold">
+                  {target === "type" ? "種別名" : "名称"}
+                </label>
+
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={
+                    target === "type"
+                      ? "例: 自火報・防排煙"
+                      : "名称を入力"
+                  }
+                  className="w-full rounded border px-3 py-2"
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+
+              <div className="text-right">
+                <button
+                  onClick={handleAdd}
+                  className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                >
+                  登録
+                </button>
+              </div>
+            </div>
+          ) : action === "edit" ? (
+            <div className="space-y-3">
+              <div className="max-h-80 overflow-y-auto rounded border border-gray-200">
+                {items.length > 0 ? (
+                  items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border-b border-gray-100 px-4 py-3 text-sm last:border-b-0"
+                    >
+                      {editingItemId === item.id ? (
+                        <div className="space-y-2">
+                          {target === "type" && (
+                            <input
+                              value={editingCode}
+                              onChange={(e) => {
+                                const value = e.target.value;
+
+                                if (/^[A-Za-z0-9-]*$/.test(value)) {
+                                  setEditingCode(value);
+                                }
+                              }}
+                              className="w-full rounded border px-3 py-2"
+                              placeholder="種別コード"
+                            />
+                          )}
+
+                          <input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="w-full rounded border px-3 py-2"
+                            placeholder={
+                              target === "type"
+                                ? "種別名"
+                                : "名称"
+                            }
+                          />
+
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={handleUpdate}
+                              className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
+                            >
+                              保存
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setEditingItemId(null);
+                                setEditingName("");
+                                setEditingCode("");
+                                setError("");
+                              }}
+                              className="rounded bg-gray-400 px-3 py-1 text-sm text-white hover:bg-gray-500"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-900">
+                            {target === "type" ? (
+                              <>
+                                <b>{item.code}</b>：{item.name}
+                              </>
+                            ) : (
+                              item.name
+                            )}
+                          </span>
+
+                          <button
+                            onClick={() => {
+                              setEditingItemId(item.id);
+                              setEditingName(item.name);
+                              setEditingCode(item.code || "");
+                              setError("");
+                            }}
+                            className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
+                          >
+                            編集
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="px-4 py-3 text-sm text-gray-500">
+                    登録データがありません。
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              この操作は次のステップで実装します。
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 text-right">
+          <button
+            onClick={onClose}
+            className="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+          >
+            閉じる
+          </button>
         </div>
       </div>
     </div>

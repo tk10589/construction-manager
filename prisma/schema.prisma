@@ -51,3 +51,10 @@ model Staff {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+model ProjectType {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+}
