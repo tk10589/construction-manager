@@ -169,7 +169,9 @@ export default function Home() {
       setDetailManagerKeyword(selectedProject.manager);
 
       setAmountInput(
-        selectedProject.amount.toLocaleString("ja-JP")
+        selectedProject.amount
+          ? selectedProject.amount.toLocaleString("ja-JP")
+          : ""
       );
 
       setBudgetInput(
@@ -635,20 +637,22 @@ export default function Home() {
 
       {selectedProject && (
         <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
           onClick={() => setSelectedProject(null)}
         >
           <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg"
+            className="relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-gray-900">
-              案件詳細
-            </h2>
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                案件詳細
+              </h2>
+            </div>
 
             {/* 表示モード */}
             {!isEditing && (
-              <div className="mt-4 space-y-2 text-sm">
+              <div className="px-6 py-3 mt-4 space-y-2 text-sm">
                 <p><b>案件番号：</b>{selectedProject.code}</p>
                 <p><b>受注日：</b>
                   {selectedProject.orderDate
@@ -684,7 +688,7 @@ export default function Home() {
 
             {/* 編集モード */}
             {isEditing && editData && (
-              <div className="mt-4 space-y-3 text-sm">
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto px-6 py-4">
 
                 <div>
                   <label className="mb-1 block text-sm font-semibold">
@@ -764,17 +768,23 @@ export default function Home() {
                 )}
                 </div>                
 
-                <input
-                  value={editData.name}
-                  onChange={(e) => {
-                    setEditData({ ...editData, name: e.target.value });
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    案件名
+                  </label>
 
-                    setErrors((prev) => ({ ...prev, name: "" }));
-                  }}
-                  className={`w-full border px-3 py-2 rounded ${
-                    errors.name ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
+                  <input
+                    value={editData.name}
+                    onChange={(e) => {
+                      setEditData({ ...editData, name: e.target.value });
+
+                      setErrors((prev) => ({ ...prev, name: "" }));
+                    }}
+                    className={`w-full border px-3 py-2 rounded ${
+                      errors.name ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                </div>  
 
                 {errors.name && (
                   <p className="text-red-500 text-xs mt-1">
@@ -908,31 +918,61 @@ export default function Home() {
                   )}
                 </div>
 
-                <input
-                  value={amountInput}
-                  onChange={(e) => {
-                    // 数字だけ許可
-                    const value = e.target.value.replace(/[^\d]/g, "");
-                    setAmountInput(value);
+                {/* <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    受注金額
+                  </label>
 
-                    setErrors((prev) => ({ ...prev, amount: "" }));
-                  }}
-                  onBlur={() => {
-                    if (!amountInput) return;
+                  <input
+                    value={amountInput}
+                    onChange={(e) => {
+                      // 数字だけ許可
+                      const value = e.target.value.replace(/[^\d]/g, "");
+                      setAmountInput(value);
 
-                    // 表示用カンマ
-                    setAmountInput(
-                      Number(amountInput).toLocaleString('ja-JP')
-                    );
-                  }}
-                  onFocus={() => {
-                    // カンマ削除
-                    setAmountInput(amountInput.replace(/,/g, ""));
-                  }}
-                  className={`w-full border px-3 py-2 rounded ${
-                    errors.amount ? "border-red-500" : ""
-                  }`}
-                />
+                      setErrors((prev) => ({ ...prev, amount: "" }));
+                    }}
+                    onBlur={() => {
+                      if (!amountInput) return;
+
+                      // 表示用カンマ
+                      setAmountInput(
+                        Number(amountInput).toLocaleString('ja-JP')
+                      );
+                    }}
+                    onFocus={() => {
+                      // カンマ削除
+                      setAmountInput(amountInput.replace(/,/g, ""));
+                    }}
+                    className={`w-full border px-3 py-2 text-right rounded ${
+                      errors.amount ? "border-red-500" : ""
+                    }`}
+                  />
+                </div> */}
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold">
+                    受注金額
+                  </label>
+
+                  <input
+                    value={amountInput}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d]/g, "");
+                      setAmountInput(value);
+                    }}
+                    onFocus={() => {
+                      setAmountInput(amountInput.replace(/,/g, ""));
+                    }}
+                    onBlur={() => {
+                      if (!amountInput) return;
+                      setAmountInput(
+                        Number(amountInput.replace(/,/g, "")).toLocaleString("ja-JP")
+                      );
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+                  />
+                </div>
 
                 {errors.amount && (
                   <p className="text-red-500 text-xs">{errors.amount}</p>
@@ -962,17 +1002,20 @@ export default function Home() {
                   />
                 </div>
 
-                <select
-                  value={editData.status}
-                  onChange={(e) =>
-                    setEditData({ ...editData, status: e.target.value })
-                  }
-                  className="w-full border px-3 py-2 rounded"
-                >
-                  <option>未着手</option>
-                  <option>施工中</option>
-                  <option>完了</option>
-                </select>
+                <div>
+                  <label>進捗</label>
+                  <select
+                    value={editData.status}
+                    onChange={(e) =>
+                      setEditData({ ...editData, status: e.target.value })
+                    }
+                    className="w-full border px-3 py-2 rounded"
+                  >
+                    <option>未着手</option>
+                    <option>施工中</option>
+                    <option>完了</option>
+                  </select>
+                </div>
 
                 <div>
                   <label>着工日</label>
@@ -1007,10 +1050,24 @@ export default function Home() {
             )}  
 
             {/* ボタン */}
-            <div className="mt-6 flex justify-between">
+            <div className="flex justify-between border-t border-gray-200 px-6 py-4">
               {!isEditing ? (
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+
+                    setAmountInput(
+                      selectedProject.amount
+                        ? selectedProject.amount.toLocaleString("ja-JP")
+                        : ""
+                    );
+
+                    setBudgetInput(
+                      selectedProject.budget
+                        ? selectedProject.budget.toLocaleString("ja-JP")
+                        : ""
+                    );
+                  }}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
                   編集
@@ -1101,10 +1158,10 @@ function ProjectsTable({
   return (
     <div className="max-h-[600px] overflow-auto rounded-lg border border-gray-300">
       <table className="min-w-[1700px] table-fixed border-collapse bg-white text-sm">
-        <thead className="sticky top-0 z-10 bg-gray-100 text-left text-gray-900">
+        <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
-              className="sticky left-0 z-40 w-[120px] min-w-[120px] bg-gray-100  px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
+              className="sticky top-0 left-0 z-50 w-[130px] min-w-[130px] bg-gray-100  px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
               onClick={() => {
                 if (sortKey === "code") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -1116,17 +1173,17 @@ function ProjectsTable({
             >
               案件番号 {sortKey === "code" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="sticky left-[120px] z-40 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
+            <th className="sticky top-0 left-[120px] z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
-            <th className="sticky left-[220px] z-40 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
+            <th className="sticky top-0 left-[220px] z-50 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
               案件名
               </th>
-            <th className="px-4 py-3 font-bold">受注日</th>
-            <th className="px-4 py-3 font-bold">発注者</th>
-            <th className="px-4 py-3 font-bold">担当者</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">発注者</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">担当者</th>
             <th
-              className="px-4 py-3 font-bold text-center cursor-pointer hover:bg-gray-200"
+              className="sticky top-0 z-40 px-4 py-3 font-bold text-center cursor-pointer hover:bg-gray-200"
               onClick={() => {
                 if (sortKey === "amount") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -1138,13 +1195,13 @@ function ProjectsTable({
             >
               受注金額 {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="px-4 py-3 font-bold text-center">実行予算</th>
-            <th className="px-4 py-3 font-bold text-center">原価率</th>
-            <th className="px-4 py-3 font-bold text-center">粗利</th>            
-            <th className="px-4 py-3 font-bold">着工日</th>
-            <th className="px-4 py-3 font-bold">完了日</th>
-            <th className="w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
-            <th className="px-4 py-3 font-bold">操作</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">実行予算</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">原価率</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">粗利</th>            
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">着工日</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">完了日</th>
+            <th className="sticky top-0 z-40 w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">操作</th>
           </tr>
         </thead>
 
@@ -1383,254 +1440,258 @@ function NewProjectForm({
   };
 
   return (
-    <div className="max-w-2xl space-y-5 rounded-lg border border-gray-300 p-6">
-      <div>
-        <label className="mb-1 block text-sm font-semibold">
-          種別
-        </label>
+    <div className="max-w-2xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm">
+      <div className="max-h-[60vh] space-y-5 overflow-y-auto px-6 py-5">
+        <div>
+          <label className="mb-1 block text-sm font-semibold">
+            種別
+          </label>
 
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
-        >
-          <option value="">選択してください</option>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          >
+            <option value="">選択してください</option>
 
-          {projectTypes.map((type) => (
-            <option key={type.id} value={type.code}>
-              {type.name}（{type.code}）
-            </option>
-          ))}
-        </select>
-      </div>
+            {projectTypes.map((type) => (
+              <option key={type.id} value={type.code}>
+                {type.name}（{type.code}）
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          案件番号
-        </label>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            案件番号
+          </label>
 
-        <input
-          value={code}
-          onChange={(e) => {
-            const value = e.target.value;
+          <input
+            value={code}
+            onChange={(e) => {
+              const value = e.target.value;
 
-            // 半角英数字とハイフンのみ
-            if (/^[A-Za-z0-9-]*$/.test(value)) {
-              setCode(value);
-            }
-          }}
-          placeholder="例: M-2026-001"
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
-        />
-      </div>
+              // 半角英数字とハイフンのみ
+              if (/^[A-Za-z0-9-]*$/.test(value)) {
+                setCode(value);
+              }
+            }}
+            placeholder="例: M-2026-001"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          />
+        </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          案件名
-        </label>
-        <input
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
-          placeholder="例：青葉ビル 自火報更新工事"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            案件名
+          </label>
+          <input
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
+            placeholder="例：青葉ビル 自火報更新工事"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
 
-      <div>
-        <label className="text-sm">受注日</label>
+        <div>
+          <label className="text-sm">受注日</label>
 
-        <input
+          <input
+            type="date"
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
+            className="w-full rounded border px-3 py-2"
+          />
+        </div>
+
+        <div ref={clientSearchRef} className="relative">
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            発注者
+          </label>
+
+          <input
+            value={clientKeyword}
+            onChange={(e) => {
+              setClientKeyword(e.target.value);
+              setShowClientList(true);
+              setClient("");
+
+              setErrors((prev) => ({
+                ...prev,
+                client: "",
+              }));
+            }}
+            onFocus={() => setShowClientList(true)}
+            placeholder="発注者を検索"
+            className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
+              errors.client
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
+          />
+
+          {showClientList && (
+            <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+              {filteredClients.length > 0 ? (
+                filteredClients.map((clientItem) => (
+                  <button
+                    type="button"
+                    key={clientItem.id}
+                    onClick={() => {
+                      setClient(clientItem.name);
+                      setClientKeyword(clientItem.name);
+                      setShowClientList(false);
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                  >
+                    {clientItem.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  該当する発注者がありません
+                </div>
+              )}
+            </div>
+          )}
+
+          {errors.client && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.client}
+            </p>
+          )}
+        </div>
+
+        <div ref={managerSearchRef} className="relative">
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            担当者
+          </label>
+
+          <input
+            value={managerKeyword}
+            onChange={(e) => {
+              setManagerKeyword(e.target.value);
+              setShowManagerList(true);
+              setManager("");
+
+              setErrors((prev) => ({
+                ...prev,
+                manager: "",
+              }));
+            }}
+            onFocus={() => setShowManagerList(true)}
+            placeholder="担当者を検索"
+            className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
+              errors.manager
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
+          />
+
+          {showManagerList && (
+            <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+              {filteredStaffs.length > 0 ? (
+                filteredStaffs.map((staff) => (
+                  <button
+                    type="button"
+                    key={staff.id}
+                    onClick={() => {
+                      setManager(staff.name);
+                      setManagerKeyword(staff.name);
+                      setShowManagerList(false);
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                  >
+                    {staff.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  該当する担当者がありません
+                </div>
+              )}
+            </div>
+          )}
+
+          {errors.manager && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.manager}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            受注金額
+          </label>
+          <input
+            type="number"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
+            placeholder="例：1800000"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm">実行予算</label>
+
+          <input
+            value={budget}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setBudget(value);
+            }}
+            className="w-full rounded border px-3 py-2"
+            placeholder="例: 1000000"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            進捗
+          </label>
+          <select
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 outline-none focus:border-blue-500"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option>未着手</option>
+            <option>施工中</option>
+            <option>完了</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm">着工日</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm">完了日</label>
+          <input
           type="date"
-          value={orderDate}
-          onChange={(e) => setOrderDate(e.target.value)}
-          className="w-full rounded border px-3 py-2"
-        />
-      </div>
-
-      <div ref={clientSearchRef} className="relative">
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          発注者
-        </label>
-
-        <input
-          value={clientKeyword}
-          onChange={(e) => {
-            setClientKeyword(e.target.value);
-            setShowClientList(true);
-            setClient("");
-
-            setErrors((prev) => ({
-              ...prev,
-              client: "",
-            }));
-          }}
-          onFocus={() => setShowClientList(true)}
-          placeholder="発注者を検索"
-          className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
-            errors.client
-              ? "border-red-500"
-              : "border-gray-300"
-          }`}
-        />
-
-        {showClientList && (
-          <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-            {filteredClients.length > 0 ? (
-              filteredClients.map((clientItem) => (
-                <button
-                  type="button"
-                  key={clientItem.id}
-                  onClick={() => {
-                    setClient(clientItem.name);
-                    setClientKeyword(clientItem.name);
-                    setShowClientList(false);
-                  }}
-                  className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
-                >
-                  {clientItem.name}
-                </button>
-              ))
-            ) : (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                該当する発注者がありません
-              </div>
-            )}
-          </div>
-        )}
-
-        {errors.client && (
-          <p className="mt-1 text-xs text-red-500">
-            {errors.client}
-          </p>
-        )}
-      </div>
-
-      <div ref={managerSearchRef} className="relative">
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          担当者
-        </label>
-
-        <input
-          value={managerKeyword}
-          onChange={(e) => {
-            setManagerKeyword(e.target.value);
-            setShowManagerList(true);
-            setManager("");
-
-            setErrors((prev) => ({
-              ...prev,
-              manager: "",
-            }));
-          }}
-          onFocus={() => setShowManagerList(true)}
-          placeholder="担当者を検索"
-          className={`w-full rounded-lg border px-4 py-2 text-gray-900 ${
-            errors.manager
-              ? "border-red-500"
-              : "border-gray-300"
-          }`}
-        />
-
-        {showManagerList && (
-          <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-            {filteredStaffs.length > 0 ? (
-              filteredStaffs.map((staff) => (
-                <button
-                  type="button"
-                  key={staff.id}
-                  onClick={() => {
-                    setManager(staff.name);
-                    setManagerKeyword(staff.name);
-                    setShowManagerList(false);
-                  }}
-                  className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
-                >
-                  {staff.name}
-                </button>
-              ))
-            ) : (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                該当する担当者がありません
-              </div>
-            )}
-          </div>
-        )}
-
-        {errors.manager && (
-          <p className="mt-1 text-xs text-red-500">
-            {errors.manager}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          受注金額
-        </label>
-        <input
-          type="number"
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
-          placeholder="例：1800000"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="text-sm">実行予算</label>
-
-        <input
-          value={budget}
-          onChange={(e) => {
-            const value = e.target.value.replace(/[^\d]/g, "");
-            setBudget(value);
-          }}
-          className="w-full rounded border px-3 py-2"
-          placeholder="例: 1000000"
-        />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          進捗
-        </label>
-        <select
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 outline-none focus:border-blue-500"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+      </div>  
+      
+      <div className="border-t border-gray-200 px-6 py-4 text-right">
+        <button
+          onClick={handleSubmit}
+          className="rounded-lg bg-blue-600 px-6 py-2 font-bold text-white hover:bg-blue-700"
         >
-          <option>未着手</option>
-          <option>施工中</option>
-          <option>完了</option>
-        </select>
+          登録する
+        </button>
       </div>
-
-      <div>
-        <label className="text-sm">着工日</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm">完了日</label>
-        <input
-        type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
-        />
-      </div>
-
-      <button
-        onClick={handleSubmit}
-        className="rounded-lg bg-blue-600 px-6 py-2 font-bold text-white hover:bg-blue-700"
-      >
-        登録する
-      </button>
     </div>
   );
 }
@@ -1762,33 +1823,15 @@ function EditModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        className="px-6 py-4 relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg"
       >
         <h2 className="text-xl font-bold">案件編集</h2>
 
-        <div className="mt-6 space-y-4">
-          <select
-            value={editData.type}
-            onChange={(e) =>
-              setEditData({
-                ...editData,
-                type: e.target.value,
-              })
-            }
-            className="w-full rounded-lg border px-4 py-2"
-          >
-            <option value="">選択してください</option>
-
-            {projectTypes.map((type) => (
-              <option key={type.id} value={type.code}>
-                {type.name}（{type.code}）
-              </option>
-            ))}
-          </select>
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto px-6 py-4">
           <div>
             <label className="mb-1 block text-sm font-semibold">
               案件番号
@@ -1822,32 +1865,63 @@ function EditModal({
               </p>
             )}
           </div>
+          
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              種別
+            </label>
 
-          <input
-            value={editData.name}
-            onChange={(e) => {
-              setEditData({
-                ...editData,
-                name: e.target.value,
-              });
+            <select
+              value={editData.type}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  type: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border px-4 py-2"
+            >
+              <option value="">選択してください</option>
 
-              setErrors((prev) => ({
-                ...prev,
-                name: "",
-              }));
-            }}
-            placeholder="案件名"
-            className={`w-full rounded-lg border px-4 py-2 ${
-              errors.name
-                ? "border-red-500"
-                : "border-gray-300"
-            }`}
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.name}
-            </p>
-          )}
+              {projectTypes.map((type) => (
+                <option key={type.id} value={type.code}>
+                  {type.name}（{type.code}）
+                </option>
+              ))}
+            </select>
+          </div>          
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              案件名
+            </label>  
+          
+            <input
+              value={editData.name}
+              onChange={(e) => {
+                setEditData({
+                  ...editData,
+                  name: e.target.value,
+                });
+
+                setErrors((prev) => ({
+                  ...prev,
+                  name: "",
+                }));
+              }}
+              placeholder="案件名"
+              className={`w-full rounded-lg border px-4 py-2 ${
+                errors.name
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
+            />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.name}
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold">
@@ -2066,23 +2140,32 @@ function EditModal({
             />
           </div>
 
-          <select
-            value={editData.status}
-            onChange={(e) =>
-              setEditData({
-                ...editData,
-                status: e.target.value,
-              })
-            }
-            className="w-full rounded-lg border px-4 py-2"
-          >
-            <option>未着手</option>
-            <option>施工中</option>
-            <option>完了</option>
-          </select>
+          <div>
+            <label  className="mb-1 block text-sm font-semibold">
+              着工日
+            </label>
+
+            <select
+              value={editData.status}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  status: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border px-4 py-2"
+            >
+              <option>未着手</option>
+              <option>施工中</option>
+              <option>完了</option>
+            </select>
+          </div>
 
           <div>
-            <label className="text-sm">着工日</label>
+            <label  className="mb-1 block text-sm font-semibold">
+              着工日
+            </label>
+
             <input
               type="date"
               value={editData.startDate?.slice(0, 10) || ""}
@@ -2097,7 +2180,9 @@ function EditModal({
           </div>
 
           <div>
-            <label className="text-sm">完了日</label>
+            <label  className="mb-1 block text-sm font-semibold">
+              完了日
+            </label>
             <input
               type="date"
               value={editData.endDate?.slice(0, 10) || ""}
@@ -2115,7 +2200,7 @@ function EditModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded-lg border px-4 py-2"
+            className="rounded-lg border px-4 py-2 font-bold"
           >
             閉じる
           </button>
