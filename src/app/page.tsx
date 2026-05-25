@@ -1156,8 +1156,8 @@ function ProjectsTable({
   };
 
   return (
-    <div className="max-h-[600px] overflow-auto rounded-lg border border-gray-300">
-      <table className="min-w-[1700px] table-fixed border-collapse bg-white text-sm">
+    <div className="max-h-[calc(100vh-260px)] overflow-auto overscroll-contain rounded-lg border border-gray-300">
+      <table className="min-w-[1800px] table-fixed border-collapse bg-white text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
@@ -1201,7 +1201,9 @@ function ProjectsTable({
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">着工日</th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">完了日</th>
             <th className="sticky top-0 z-40 w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">操作</th>
+            <th className="sticky top-0 right-0 z-40 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
+              操作
+            </th>
           </tr>
         </thead>
 
@@ -1272,20 +1274,22 @@ function ProjectsTable({
                   {project.status}
                 </span>
               </td>
-              <td className="px-4 py-3 space-x-2">
-                <button
-                  onClick={() => onEdit(project)}
-                  className="rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white hover:bg-green-700"
-                >
-                  編集
-                </button>
+              <td className="sticky right-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => onEdit(project)}
+                    className="rounded-lg bg-green-600 px-1 py-2 text-xs font-bold text-white hover:bg-green-700"
+                  >
+                    編集
+                  </button>
 
-                <button
-                  onClick={() => setDeletingProject(project)}
-                  className="rounded-lg bg-red-500 px-3 py-1 text-xs font-bold text-white hover:bg-red-600"
-                >
-                  削除
-                </button>
+                  <button
+                    onClick={() => setDeletingProject(project)}
+                    className="rounded-lg bg-red-500 px-1 py-2 text-xs font-bold text-white hover:bg-red-600"
+                  >
+                    削除
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
