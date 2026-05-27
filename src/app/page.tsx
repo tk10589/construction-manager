@@ -8,6 +8,16 @@ import NewProjectForm from "@/components/NewProjectForm";
 import EditModal from "@/components/EditModal";
 import SettingsPage from "@/components/settings/SettingsPage";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
+import DeleteProjectModal from "@/components/DeleteProjectModal";
+import {
+  fetchProjectsApi,
+  fetchClientsApi,
+  fetchStaffsApi,
+  fetchProjectTypesApi,
+  createProjectApi,
+  updateProjectApi,
+  deleteProjectApi,
+} from "@/lib/api";
 
 const menuItems = [
   { id: "projects", title: "案件管理", description: "案件一覧、進捗、受注金額を確認します。" },
@@ -30,6 +40,7 @@ export default function Home() {
   const [codeSort, setCodeSort] = useState<"asc" | "desc">("asc");
   const [amountSort, setAmountSort] = useState<"none" | "desc" | "asc">("none");
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [sortKey, setSortKey] = useState<"code" | "amount">("code");
@@ -38,34 +49,31 @@ export default function Home() {
   
   const [toast, setToast] = useState<string | null>(null);
   
-  
   const [clients, setClients] = useState<any[]>([]);
   const [staffs, setStaffs] = useState<any[]>([]);
 
   
-
-
-
-
   const fetchProjects = async () => {
-    const res = await fetch(
-      `/api/projects?q=${keyword}`
-    );
-    const data = await res.json();
-
-    setProjects(data);
-    setLoading(false);
+    try {
+      const data = await fetchProjectsApi(keyword);
+      setProjects(data);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件一覧の取得に失敗しました"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchMasters = async () => {
-    const clientRes = await fetch("/api/clients");
-    const clientData = await clientRes.json();
-
-    const staffRes = await fetch("/api/staffs");
-    const staffData = await staffRes.json();
-
-    const typeRes = await fetch("/api/project-types");
-    const typeData = await typeRes.json();
+    const [clientData, staffData, typeData] = await Promise.all([
+      fetchClientsApi(),
+      fetchStaffsApi(),
+      fetchProjectTypesApi(),
+    ]);
 
     setClients(clientData);
     setStaffs(staffData);
@@ -126,42 +134,44 @@ export default function Home() {
   const addProject = async (
     newProject: Omit<Project, "id">
   ): Promise<boolean> => {
-    const response = await fetch("/api/projects", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newProject),
-    });
+    try {
+      await createProjectApi(newProject);
 
-    if (!response.ok) {
-      const errorData = await response.json();
+      await fetchProjects();
+      setSelectedMenu(menuItems[0]);
 
-      alert(errorData.error || "案件の登録に失敗しました。");
+      return true;
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の登録に失敗しました。"
+      );
 
       return false;
     }
-
-    await fetchProjects();
-    setSelectedMenu(menuItems[0]);
-
-    return true;
   };
 
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const confirmDelete = async () => {
     if (!deletingProject) return;
 
-    setIsDeleting(true);
+    try {
+      setIsDeleting(true);
 
-    await fetch(`/api/projects/${deletingProject.id}`, {
-      method: "DELETE",
-    });
+      await deleteProjectApi(deletingProject.id);
 
-    await fetchProjects();
-    setDeletingProject(null);
-    setIsDeleting(false);
+      await fetchProjects();
+      setDeletingProject(null);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の削除に失敗しました"
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const editProject = (project: Project) => {
@@ -169,16 +179,18 @@ export default function Home() {
   };
 
   const updateProject = async (project: Project) => {
-    await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(project),
-    });
+    try {
+      await updateProjectApi(project);
 
-    await fetchProjects();
-    setEditingProject(null);
+      await fetchProjects();
+      setEditingProject(null);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の更新に失敗しました。"
+      );
+    }
   };
 
   
@@ -386,48 +398,16 @@ export default function Home() {
           projectTypes={projectTypes}
         />
       )}
+
       {deletingProject && (
-        <div
-          className="fixed inset-0  z-[110] flex items-center justify-center bg-black/40"
-          onClick={() => setDeletingProject(null)} // 背景クリックで閉じる
-        >
-          <div
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()} // 中クリック無効
-          >
-            <h2 className="text-lg font-bold text-gray-900">
-              削除確認
-            </h2>
-
-            <p className="mt-3 text-gray-700">
-              本当に削除しますか？
-            </p>
-
-            <div className="mt-4 rounded-md bg-gray-100 p-3 text-sm">
-              <p>案件番号：{deletingProject.code}</p>
-              <p>案件名：{deletingProject.name}</p>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setDeletingProject(null)}
-                className="rounded-lg border px-4 py-2"
-                disabled={isDeleting}
-              >
-                キャンセル
-              </button>
-
-              <button
-                onClick={confirmDelete}
-                className="rounded-lg bg-red-500 px-4 py-2 text-white"
-                disabled={isDeleting}
-              >
-                {isDeleting ? "削除中..." : "削除する"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteProjectModal
+          project={deletingProject}
+          isDeleting={isDeleting}
+          onClose={() => setDeletingProject(null)}
+          onConfirm={confirmDelete}
+        />
       )}
+      
 
       {selectedProject && (
         <ProjectDetailModal
@@ -454,13 +434,6 @@ export default function Home() {
     </main>
   );
 }
-
-
-
-
-
-
-
 
 
 
