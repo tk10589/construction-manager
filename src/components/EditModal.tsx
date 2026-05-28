@@ -605,29 +605,29 @@ export default function EditModal({
               className="w-full border px-3 py-2 rounded"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold">
-            備考
-          </label>
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                備考
+              </label>
 
-          <textarea
-            value={editData.note || ""}
-            onChange={(e) =>
-              setEditData({
-                ...editData,
-                note: e.target.value,
-              })
-            }
-            rows={3}
-            maxLength={300}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2"
-          />
+              <textarea
+                value={editData.note || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    note: e.target.value,
+                  })
+                }
+                rows={3}
+                maxLength={300}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              />
 
-          <p className="mt-1 text-right text-xs text-gray-500">
-            {(editData.note || "").length}/300
-          </p>
+              <p className="mt-1 text-right text-xs text-gray-500">
+                {(editData.note || "").length}/300
+              </p>
+            </div>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">

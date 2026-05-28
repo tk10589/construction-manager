@@ -50,6 +50,11 @@ export default function NewProjectForm({
   const [outsourceCost, setOutsourceCost] = useState("");
   const [note, setNote] = useState("");
 
+  const [salesStaffKeyword, setSalesStaffKeyword] = useState("");
+  const [showSalesStaffList, setShowSalesStaffList] = useState(false);
+
+  const salesStaffSearchRef = useRef<HTMLDivElement>(null);
+
   const [errors, setErrors] = useState({
     name: "",
     client: "",
@@ -74,6 +79,13 @@ export default function NewProjectForm({
         !managerSearchRef.current.contains(target)
       ) {
         setShowManagerList(false);
+      }
+
+      if (
+        salesStaffSearchRef.current &&
+        !salesStaffSearchRef.current.contains(target)
+      ) {
+        setShowSalesStaffList(false);
       }
     };
 
@@ -105,7 +117,22 @@ export default function NewProjectForm({
       .includes(managerKeyword.toLowerCase())
   );
 
+  const filteredSalesStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(salesStaffKeyword.toLowerCase())
+  );
+
   const handleSubmit = async () => {
+    
+    const numericAmount = Number(amount.replace(/,/g, ""));
+    const numericBudget = budget
+      ? Number(budget.replace(/,/g, ""))
+      : undefined;
+    const numericOutsourceCost = outsourceCost
+      ? Number(outsourceCost.replace(/,/g, ""))
+      : 0;
+
     if (!code || !type || !name || !client || !manager || !amount) {
       alert("未入力の項目があります。");
       return;
@@ -121,6 +148,11 @@ export default function NewProjectForm({
       return;
     }
 
+    if (!numericAmount || numericAmount <= 0) {
+      alert("受注金額を入力してください");
+      return;
+    }
+
     const success = await onAdd({
       code,
       type,
@@ -131,12 +163,10 @@ export default function NewProjectForm({
       salesStaff: salesStaff || undefined,
       clientStaff: clientStaff || undefined,
       outsourceCompany: outsourceCompany || undefined,
-      outsourceCost: outsourceCost
-        ? Number(outsourceCost)
-        : 0,
+      outsourceCost: numericOutsourceCost,
 
-      amount: Number(amount),
-      budget: budget ? Number(budget) : undefined,
+      amount: numericAmount,
+      budget: numericBudget,
 
       status,
 
@@ -174,6 +204,9 @@ export default function NewProjectForm({
     setOutsourceCompany("");
     setOutsourceCost("");
     setNote("");
+
+    setSalesStaffKeyword("");
+    setShowSalesStaffList(false);
   };
 
   return (
@@ -313,24 +346,47 @@ export default function NewProjectForm({
           />
         </div>
 
-        <div>
+        <div ref={salesStaffSearchRef} className="relative">
           <label className="mb-1 block text-sm font-semibold text-gray-800">
             営業担当者
           </label>
 
-          <select
-            value={salesStaff}
-            onChange={(e) => setSalesStaff(e.target.value)}
+          <input
+            value={salesStaffKeyword}
+            onChange={(e) => {
+              setSalesStaffKeyword(e.target.value);
+              setShowSalesStaffList(true);
+              setSalesStaff("");
+            }}
+            onFocus={() => setShowSalesStaffList(true)}
+            placeholder="営業担当者を検索"
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
-          >
-            <option value="">選択してください</option>
+          />
 
-            {staffs.map((staff) => (
-              <option key={staff.id} value={staff.name}>
-                {staff.name}
-              </option>
-            ))}
-          </select>
+          {showSalesStaffList && (
+            <div className="absolute z-20 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+              {filteredSalesStaffs.length > 0 ? (
+                filteredSalesStaffs.map((staff) => (
+                  <button
+                    type="button"
+                    key={staff.id}
+                    onClick={() => {
+                      setSalesStaff(staff.name);
+                      setSalesStaffKeyword(staff.name);
+                      setShowSalesStaffList(false);
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                  >
+                    {staff.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  該当する営業担当者がありません
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div ref={managerSearchRef} className="relative">
@@ -408,19 +464,57 @@ export default function NewProjectForm({
           <label className="mb-1 block text-sm font-semibold text-gray-800">
             受注金額
           </label>
+
           <input
+            type="text"
+            value={amount}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setAmount(value);
+            }}
+            onFocus={() => {
+              setAmount(amount.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!amount) return;
+              setAmount(
+                Number(amount.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
+          />
+          {/* <input
             type="number"
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
             placeholder="例：1800000"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-          />
+          /> */}
         </div>
 
         <div>
           <label className="text-sm">実行予算</label>
 
           <input
+            type="text"
+            value={budget}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setBudget(value);
+            }}
+            onFocus={() => {
+              setBudget(budget.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!budget) return;
+              setBudget(
+                Number(budget.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
+          />
+
+          {/* <input
             value={budget}
             onChange={(e) => {
               const value = e.target.value.replace(/[^\d]/g, "");
@@ -428,7 +522,7 @@ export default function NewProjectForm({
             }}
             className="w-full rounded border px-3 py-2"
             placeholder="例: 1000000"
-          />
+          /> */}
         </div>
 
         <div>
@@ -490,26 +584,26 @@ export default function NewProjectForm({
             className="w-full border px-3 py-2 rounded"
           />
         </div>
-      </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-semibold text-gray-800">
-          備考
-        </label>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            備考
+          </label>
 
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={3}
-          maxLength={300}
-          placeholder="現場情報・注意事項など"
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
-        />
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            maxLength={300}
+            placeholder="現場情報・注意事項など"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          />
 
-        <p className="mt-1 text-right text-xs text-gray-500">
-          {note.length}/300
-        </p>
-      </div> 
+          <p className="mt-1 text-right text-xs text-gray-500">
+            {note.length}/300
+          </p>
+        </div> 
+      </div>      
       
       <div className="border-t border-gray-200 px-6 py-4 text-right">
         <button

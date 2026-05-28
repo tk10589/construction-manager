@@ -45,6 +45,15 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  // 受注金額入力チェック
+  const amount = Number(body.amount);
+
+  if (!amount || amount <= 0) {
+    return NextResponse.json(
+      { error: "受注金額は1以上で入力してください" },
+      { status: 400 }
+    );
+  }
 
   // ③ 重複チェック
   const exists = await prisma.project.findUnique({
