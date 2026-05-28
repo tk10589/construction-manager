@@ -42,6 +42,8 @@ export default function ProjectDetailModal({
   const detailClientSearchRef = useRef<HTMLDivElement>(null);
   const detailManagerSearchRef = useRef<HTMLDivElement>(null);
 
+  const [outsourceCostInput, setOutsourceCostInput] = useState("");
+
   useEffect(() => {
     if (selectedProject) {
       setEditData(selectedProject);
@@ -61,6 +63,13 @@ export default function ProjectDetailModal({
           ? selectedProject.budget.toLocaleString("ja-JP")
           : ""
       );
+
+      setOutsourceCostInput(
+        selectedProject.outsourceCost !== undefined &&
+          selectedProject.outsourceCost !== null
+          ? selectedProject.outsourceCost.toLocaleString("ja-JP")
+          : ""
+      );
     }
   }, [selectedProject]);
 
@@ -76,6 +85,10 @@ export default function ProjectDetailModal({
     const numericBudget = budgetInput
       ? Number(budgetInput.replace(/,/g, ""))
       : undefined;
+
+    const numericOutsourceCost = outsourceCostInput
+      ? Number(outsourceCostInput.replace(/,/g, ""))
+      : 0;
 
     if (!editData.code.trim()) {
       newErrors.code = "案件番号を入力してください";
@@ -122,6 +135,7 @@ export default function ProjectDetailModal({
           ...editData,
           amount: numericAmount,
           budget: numericBudget,
+          outsourceCost: numericOutsourceCost,
         }),
       });
 
@@ -179,12 +193,21 @@ export default function ProjectDetailModal({
             <p><b>種別：</b>{selectedProject.type}</p>
             <p><b>案件名：</b>{selectedProject.name}</p>
             <p><b>発注者：</b>{selectedProject.client}</p>
+            <p><b>発注者担当者：</b>{selectedProject.clientStaff || "-"}</p>
+            <p><b>営業担当者：</b>{selectedProject.salesStaff || "-"}</p>
             <p><b>担当者：</b>{selectedProject.manager}</p>
+            <p><b>外注依頼先：</b>{selectedProject.outsourceCompany || "-"}</p>
             <p><b>受注金額：</b>¥{selectedProject.amount.toLocaleString()}</p>
             <p><b>実行予算：</b>
               {selectedProject.budget
               ? `¥${selectedProject.budget.toLocaleString()}`
               : "-"}
+            </p>
+            <p><b>外注費：</b>
+              {selectedProject.outsourceCost !== undefined &&
+              selectedProject.outsourceCost !== null
+                ? `¥${selectedProject.outsourceCost.toLocaleString()}`
+                : "-"}
             </p>
             <p>
               <b>着工日：</b>
@@ -200,6 +223,7 @@ export default function ProjectDetailModal({
               : "-"}
             </p>
             <p><b>進捗：</b>{selectedProject.status}</p>
+            <p><b>備考：</b>{selectedProject.note || "-"}</p>
           </div>
         )}
 
@@ -372,6 +396,48 @@ export default function ProjectDetailModal({
               )}
             </div>
 
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                発注者担当者
+              </label>
+
+              <input
+                value={editData.clientStaff || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    clientStaff: e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                営業担当者
+              </label>
+
+              <select
+                value={editData.salesStaff || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    salesStaff: e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              >
+                <option value="">選択してください</option>
+
+                {staffs.map((staff) => (
+                  <option key={staff.id} value={staff.name}>
+                    {staff.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div ref={detailManagerSearchRef} className="relative">
               <label className="mb-1 block text-sm font-semibold">
               担当者
@@ -437,6 +503,23 @@ export default function ProjectDetailModal({
 
             <div>
               <label className="mb-1 block text-sm font-semibold">
+                外注依頼先
+              </label>
+
+              <input
+                value={editData.outsourceCompany || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    outsourceCompany: e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
                 受注金額
               </label>
 
@@ -488,6 +571,33 @@ export default function ProjectDetailModal({
             </div>
 
             <div>
+              <label className="mb-1 block text-sm font-semibold">
+                外注費
+              </label>
+
+              <input
+                value={outsourceCostInput}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d]/g, "");
+                  setOutsourceCostInput(value);
+                }}
+                onFocus={() => {
+                  setOutsourceCostInput(outsourceCostInput.replace(/,/g, ""));
+                }}
+                onBlur={() => {
+                  if (!outsourceCostInput) return;
+
+                  setOutsourceCostInput(
+                    Number(
+                      outsourceCostInput.replace(/,/g, "")
+                    ).toLocaleString("ja-JP")
+                  );
+                }}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+              />
+            </div>
+
+            <div>
               <label>進捗</label>
               <select
                 value={editData.status}
@@ -530,6 +640,29 @@ export default function ProjectDetailModal({
                 }
                 className="w-full border px-3 py-2 rounded"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                備考
+              </label>
+
+              <textarea
+                value={editData.note || ""}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    note: e.target.value,
+                  })
+                }
+                rows={3}
+                maxLength={300}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              />
+
+              <p className="mt-1 text-right text-xs text-gray-500">
+                {(editData.note || "").length}/300
+              </p>
             </div>
           </div>
         )}  

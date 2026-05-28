@@ -3,11 +3,23 @@ export type Project = {
   code: string;
   type: string;
   name: string;
+
   client: string;
   manager: string;
+
+  salesStaff?: string;
+  clientStaff?: string;
+
+  outsourceCompany?: string;
+  outsourceCost?: number;
+
   amount: number;
   budget?: number;
+
   status: string;
+
+  note?: string;
+
   orderDate?: string;
   startDate?: string;
   endDate?: string;

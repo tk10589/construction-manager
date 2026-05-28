@@ -24,6 +24,7 @@ export default function NewProjectForm({
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [manager, setManager] = useState("");
+
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("未着手");
   const [type, setType] = useState("");
@@ -42,6 +43,12 @@ export default function NewProjectForm({
 
   const clientSearchRef = useRef<HTMLDivElement>(null);
   const managerSearchRef = useRef<HTMLDivElement>(null);
+
+  const [salesStaff, setSalesStaff] = useState("");
+  const [clientStaff, setClientStaff] = useState("");
+  const [outsourceCompany, setOutsourceCompany] = useState("");
+  const [outsourceCost, setOutsourceCost] = useState("");
+  const [note, setNote] = useState("");
 
   const [errors, setErrors] = useState({
     name: "",
@@ -121,10 +128,19 @@ export default function NewProjectForm({
       client,
       manager,
 
+      salesStaff: salesStaff || undefined,
+      clientStaff: clientStaff || undefined,
+      outsourceCompany: outsourceCompany || undefined,
+      outsourceCost: outsourceCost
+        ? Number(outsourceCost)
+        : 0,
+
       amount: Number(amount),
       budget: budget ? Number(budget) : undefined,
 
       status,
+
+      note: note || undefined,
 
       orderDate: orderDate || undefined,
 
@@ -152,6 +168,12 @@ export default function NewProjectForm({
     setManagerKeyword("");
     setShowClientList(false);
     setShowManagerList(false);
+
+    setSalesStaff("");
+    setClientStaff("");
+    setOutsourceCompany("");
+    setOutsourceCost("");
+    setNote("");
   };
 
   return (
@@ -278,6 +300,39 @@ export default function NewProjectForm({
           )}
         </div>
 
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            発注者担当者
+          </label>
+
+          <input
+            value={clientStaff}
+            onChange={(e) => setClientStaff(e.target.value)}
+            placeholder="例：佐藤様"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            営業担当者
+          </label>
+
+          <select
+            value={salesStaff}
+            onChange={(e) => setSalesStaff(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          >
+            <option value="">選択してください</option>
+
+            {staffs.map((staff) => (
+              <option key={staff.id} value={staff.name}>
+                {staff.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div ref={managerSearchRef} className="relative">
           <label className="mb-1 block text-sm font-semibold text-gray-800">
             担当者
@@ -338,6 +393,19 @@ export default function NewProjectForm({
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-gray-800">
+            外注依頼先
+          </label>
+
+          <input
+            value={outsourceCompany}
+            onChange={(e) => setOutsourceCompany(e.target.value)}
+            placeholder="例：〇〇電工"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
             受注金額
           </label>
           <input
@@ -360,6 +428,31 @@ export default function NewProjectForm({
             }}
             className="w-full rounded border px-3 py-2"
             placeholder="例: 1000000"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            外注費
+          </label>
+
+          <input
+            value={outsourceCost}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setOutsourceCost(value);
+            }}
+            onFocus={() => {
+              setOutsourceCost(outsourceCost.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!outsourceCost) return;
+              setOutsourceCost(
+                Number(outsourceCost.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            placeholder="例：300000"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
           />
         </div>
 
@@ -397,7 +490,26 @@ export default function NewProjectForm({
             className="w-full border px-3 py-2 rounded"
           />
         </div>
-      </div>  
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-gray-800">
+          備考
+        </label>
+
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={3}
+          maxLength={300}
+          placeholder="現場情報・注意事項など"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+        />
+
+        <p className="mt-1 text-right text-xs text-gray-500">
+          {note.length}/300
+        </p>
+      </div> 
       
       <div className="border-t border-gray-200 px-6 py-4 text-right">
         <button

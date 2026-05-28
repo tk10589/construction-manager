@@ -18,15 +18,24 @@ model Project {
   type      String   @default("F")
 
   name      String
+
   client    String
   manager   String
 
+  salesStaff  String?   // 営業担当者
+  clientStaff String?   // 発注者担当者
+
+  outsourceCompany String? // 外注依頼先
+  outsourceCost    Int?    // 外注費
+
   amount    Int
-  budget    Int?      // ←追加（実行予算）
+  budget    Int?      // 実行予算
 
   status    String
 
-  orderDate DateTime? // ←追加（受注日）
+  note      String?   // 備考
+
+  orderDate DateTime? //受注日
 
   startDate DateTime?
   endDate   DateTime?

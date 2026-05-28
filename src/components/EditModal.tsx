@@ -49,6 +49,13 @@ export default function EditModal({
 
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const [outsourceCost, setOutsourceCost] = useState(
+    project.outsourceCost !== undefined &&
+      project.outsourceCost !== null
+      ? project.outsourceCost.toLocaleString("ja-JP")
+      : ""
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -72,6 +79,13 @@ export default function EditModal({
     setBudget(
       project.budget
         ? project.budget.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setOutsourceCost(
+      project.outsourceCost !== undefined &&
+        project.outsourceCost !== null
+        ? project.outsourceCost.toLocaleString("ja-JP")
         : ""
     );
 
@@ -314,6 +328,48 @@ export default function EditModal({
             )}
           </div>
 
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              発注者担当者
+            </label>
+
+            <input
+              value={editData.clientStaff || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  clientStaff: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              営業担当者
+            </label>
+
+            <select
+              value={editData.salesStaff || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  salesStaff: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-2"
+            >
+              <option value="">選択してください</option>
+
+              {staffs.map((staff) => (
+                <option key={staff.id} value={staff.name}>
+                  {staff.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div ref={managerSearchRef} className="relative">
             <label className="mb-1 block text-sm font-semibold">
               担当者
@@ -376,6 +432,23 @@ export default function EditModal({
                 {errors.manager}
               </p>
             )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              外注依頼先
+            </label>
+
+            <input
+              value={editData.outsourceCompany || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  outsourceCompany: e.target.value,
+                })
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-2"
+            />
           </div>
 
           <div className="relative">
@@ -450,6 +523,34 @@ export default function EditModal({
           </div>
 
           <div>
+            <label className="mb-1 block text-sm font-semibold">
+              外注費
+            </label>
+
+            <input
+              value={outsourceCost}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, "");
+
+                if (!/^\d*$/.test(raw)) return;
+
+                setOutsourceCost(raw);
+              }}
+              onFocus={() => {
+                setOutsourceCost(outsourceCost.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!outsourceCost) return;
+
+                setOutsourceCost(
+                  Number(outsourceCost.replace(/,/g, "")).toLocaleString("ja-JP")
+                );
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+            />
+          </div>
+
+          <div>
             <label  className="mb-1 block text-sm font-semibold">
               着工日
             </label>
@@ -506,6 +607,29 @@ export default function EditModal({
           </div>
         </div>
 
+        <div>
+          <label className="mb-1 block text-sm font-semibold">
+            備考
+          </label>
+
+          <textarea
+            value={editData.note || ""}
+            onChange={(e) =>
+              setEditData({
+                ...editData,
+                note: e.target.value,
+              })
+            }
+            rows={3}
+            maxLength={300}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2"
+          />
+
+          <p className="mt-1 text-right text-xs text-gray-500">
+            {(editData.note || "").length}/300
+          </p>
+        </div>
+
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
@@ -531,6 +655,10 @@ export default function EditModal({
               const numericBudget = budget
                 ? Number(budget.replace(/,/g, ""))
                 : undefined;
+
+              const numericOutsourceCost = outsourceCost
+                ? Number(outsourceCost.replace(/,/g, ""))
+                : 0;
 
               if (!editData.code.trim()) {
                 newErrors.code = "案件番号を入力してください";
@@ -566,6 +694,7 @@ export default function EditModal({
                 ...editData,
                 amount: numericAmount,
                 budget: numericBudget,
+                outsourceCost: numericOutsourceCost,
               });
             }}
             className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"

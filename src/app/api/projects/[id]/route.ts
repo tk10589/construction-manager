@@ -50,9 +50,17 @@ const project = await prisma.project.update({
     name: body.name,
     client: body.client,
     manager: body.manager,
+    salesStaff: body.salesStaff || null,
+    clientStaff: body.clientStaff || null,
+    outsourceCompany: body.outsourceCompany || null,
+    outsourceCost:
+      body.outsourceCost !== undefined
+        ? Number(body.outsourceCost)
+        : null,
     amount: Number(body.amount),
     budget: body.budget ?? null,
     status: body.status,
+    note: body.note || null,
     orderDate: body.orderDate ? new Date(body.orderDate) : null,
     startDate: body.startDate ? new Date(body.startDate) : null,
     endDate: body.endDate ? new Date(body.endDate) : null,

@@ -51,7 +51,7 @@ export default function ProjectsTable({
 
   return (
     <div className="max-h-[calc(100vh-260px)] overflow-auto overscroll-contain rounded-lg border border-gray-300">
-      <table className="min-w-[1800px] table-fixed border-collapse bg-white text-sm">
+      <table className="min-w-[2200px] table-fixed border-collapse bg-white text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
@@ -75,7 +75,16 @@ export default function ProjectsTable({
               </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">発注者</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+              発注者担当
+            </th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+              営業担当
+            </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">担当者</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+              外注依頼先
+            </th>
             <th
               className="sticky top-0 z-40 px-4 py-3 font-bold text-center cursor-pointer hover:bg-gray-200"
               onClick={() => {
@@ -90,11 +99,17 @@ export default function ProjectsTable({
               受注金額 {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">実行予算</th>
+            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">
+              外注費
+            </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">原価率</th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">粗利</th>            
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">着工日</th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">完了日</th>
             <th className="sticky top-0 z-40 w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
+            <th className="sticky top-0 z-40 w-[180px] min-w-[180px] px-4 py-3 font-bold">
+              備考
+            </th>
             <th className="sticky top-0 right-0 z-40 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
               操作
             </th>
@@ -104,9 +119,11 @@ export default function ProjectsTable({
         <tbody>
           {projects.map((project) => (
             <tr key={project.id} className="border-t border-gray-200">
+              {/* 案件番号 */}
               <td className="sticky left-0 z-30 w-[120px] min-w-[120px] bg-white px-4 py-3 font-semibold text-gray-900">
                 {project.code}
               </td>
+              {/* 種別 */}
               <td className="sticky left-[120px] z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(
@@ -116,25 +133,50 @@ export default function ProjectsTable({
                   {project.type}
                 </span>
               </td>
+              {/* 案件名 */}
               <td
                 className="sticky left-[220px] z-30 w-[260px] min-w-[260px] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline"
                 onClick={() => setSelectedProject(project)}
               >
                 {project.name}
               </td>
+              {/* 受注日 */}
               <td className="px-4 py-3 text-sm">
                 {project.orderDate
                   ? new Date(project.orderDate).toLocaleDateString()
                   : "-"}
               </td>
+              {/* 発注者 */}
               <td className="px-4 py-3 text-gray-800">{project.client}</td>
+              {/* 発注者担当者 */}
+              <td className="px-4 py-3 text-gray-800">
+                {project.clientStaff || "-"}
+              </td>
+              {/* 営業担当 */}
+              <td className="px-4 py-3 text-gray-800">
+                {project.salesStaff || "-"}
+              </td>
+              {/* 現場担当 */}
               <td className="px-4 py-3 text-gray-800">{project.manager}</td>
+              {/* 外注依頼先 */}
+              <td className="px-4 py-3 text-gray-800">
+                {project.outsourceCompany || "-"}
+              </td>
+              {/* 受注金額 */}
               <td className="px-4 py-3 font-semibold text-gray-900 text-center">
                 ¥{project.amount.toLocaleString() || 0}
               </td>
+              {/* 実行予算 */}
               <td className="px-4 py-3 text-center">
                 {project.budget
                   ? `¥${project.budget.toLocaleString()}`
+                  : "-"}
+              </td>
+              {/* 外注費 */}
+              <td className="px-4 py-3 text-center">
+                {project.outsourceCost !== undefined &&
+                project.outsourceCost !== null
+                  ? `¥${project.outsourceCost.toLocaleString()}`
                   : "-"}
               </td>
 
@@ -167,6 +209,20 @@ export default function ProjectsTable({
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
                   {project.status}
                 </span>
+              </td>
+              <td className="w-[180px] min-w-[180px] px-4 py-3 text-sm">
+                {project.note ? (
+                  <button
+                    onClick={() => alert(project.note)}
+                    className="text-left text-blue-600 hover:underline"
+                  >
+                    {project.note.length > 10
+                      ? `${project.note.slice(0, 10)}...`
+                      : project.note}
+                  </button>
+                ) : (
+                  "-"
+                )}
               </td>
               <td className="sticky right-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
                 <div className="flex justify-center gap-2">

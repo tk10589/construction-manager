@@ -70,10 +70,19 @@ export async function POST(request: Request) {
       client: body.client,
       manager: body.manager,
 
+      salesStaff: body.salesStaff || null,
+      clientStaff: body.clientStaff || null,
+      outsourceCompany: body.outsourceCompany || null,
+      outsourceCost:
+        body.outsourceCost !== undefined
+        ? Number(body.outsourceCost)
+        : null,
+
       amount: body.amount,
       budget: body.budget,
 
       status: body.status,
+      note: body.note || null,
 
       orderDate: body.orderDate
       ? new Date(body.orderDate)
