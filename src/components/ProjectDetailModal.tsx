@@ -44,13 +44,20 @@ export default function ProjectDetailModal({
 
   const [outsourceCostInput, setOutsourceCostInput] = useState("");
 
+  const [detailSalesStaffKeyword, setDetailSalesStaffKeyword] = useState("");
+  const [showDetailSalesStaffList, setShowDetailSalesStaffList] = useState(false);
+
+  const detailSalesStaffSearchRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    
     if (selectedProject) {
       setEditData(selectedProject);
       setIsEditing(false);
 
       setDetailClientKeyword(selectedProject.client);
       setDetailManagerKeyword(selectedProject.manager);
+      setDetailSalesStaffKeyword(selectedProject.salesStaff || "");
 
       setAmountInput(
         selectedProject.amount
@@ -72,6 +79,56 @@ export default function ProjectDetailModal({
       );
     }
   }, [selectedProject]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (
+        detailClientSearchRef.current &&
+        !detailClientSearchRef.current.contains(target)
+      ) {
+        setShowDetailClientList(false);
+      }
+
+      if (
+        detailManagerSearchRef.current &&
+        !detailManagerSearchRef.current.contains(target)
+      ) {
+        setShowDetailManagerList(false);
+      }
+
+      if (
+        detailSalesStaffSearchRef.current &&
+        !detailSalesStaffSearchRef.current.contains(target)
+      ) {
+        setShowDetailSalesStaffList(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowDetailClientList(false);
+        setShowDetailManagerList(false);
+        setShowDetailSalesStaffList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!editData) return;
@@ -164,6 +221,12 @@ export default function ProjectDetailModal({
     staff.name
       .toLowerCase()
       .includes(detailManagerKeyword.toLowerCase())
+  );
+
+  const filteredDetailSalesStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(detailSalesStaffKeyword.toLowerCase())
   );
 
   return (
@@ -413,29 +476,55 @@ export default function ProjectDetailModal({
               />
             </div>
 
-            <div>
+            <div ref={detailSalesStaffSearchRef} className="relative">
               <label className="mb-1 block text-sm font-semibold">
                 営業担当者
               </label>
 
-              <select
-                value={editData.salesStaff || ""}
-                onChange={(e) =>
+              <input
+                value={detailSalesStaffKeyword}
+                onChange={(e) => {
+                  setDetailSalesStaffKeyword(e.target.value);
+                  setShowDetailSalesStaffList(true);
+
                   setEditData({
                     ...editData,
-                    salesStaff: e.target.value,
-                  })
-                }
+                    salesStaff: "",
+                  });
+                }}
+                onFocus={() => setShowDetailSalesStaffList(true)}
+                placeholder="営業担当者を検索"
                 className="w-full rounded-lg border border-gray-300 px-4 py-2"
-              >
-                <option value="">選択してください</option>
+              />
 
-                {staffs.map((staff) => (
-                  <option key={staff.id} value={staff.name}>
-                    {staff.name}
-                  </option>
-                ))}
-              </select>
+              {showDetailSalesStaffList && (
+                <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                  {filteredDetailSalesStaffs.length > 0 ? (
+                    filteredDetailSalesStaffs.map((staff) => (
+                      <button
+                        type="button"
+                        key={staff.id}
+                        onClick={() => {
+                          setEditData({
+                            ...editData,
+                            salesStaff: staff.name,
+                          });
+
+                          setDetailSalesStaffKeyword(staff.name);
+                          setShowDetailSalesStaffList(false);
+                        }}
+                        className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                      >
+                        {staff.name}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      該当する営業担当者がありません
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div ref={detailManagerSearchRef} className="relative">

@@ -56,6 +56,13 @@ export default function EditModal({
       : ""
   );
 
+  const [salesStaffKeyword, setSalesStaffKeyword] = useState(
+    project.salesStaff || ""
+  );
+  const [showSalesStaffList, setShowSalesStaffList] = useState(false);
+
+  const salesStaffSearchRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -75,6 +82,8 @@ export default function EditModal({
     setEditData(project);
 
     setAmount(project.amount.toLocaleString("ja-JP"));
+
+    setSalesStaffKeyword(project.salesStaff || "");
 
     setBudget(
       project.budget
@@ -111,6 +120,13 @@ export default function EditModal({
       ) {
         setShowManagerList(false);
       }
+
+      if (
+        salesStaffSearchRef.current &&
+        !salesStaffSearchRef.current.contains(target)
+      ) {
+        setShowSalesStaffList(false);
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -141,6 +157,12 @@ export default function EditModal({
     staff.name
       .toLowerCase()
       .includes(managerKeyword.toLowerCase())
+  );
+
+  const filteredSalesStaffs = staffs.filter((staff) =>
+    staff.name
+      .toLowerCase()
+      .includes(salesStaffKeyword.toLowerCase())
   );
 
   return (
@@ -345,29 +367,55 @@ export default function EditModal({
             />
           </div>
 
-          <div>
+          <div ref={salesStaffSearchRef} className="relative">
             <label className="mb-1 block text-sm font-semibold">
               営業担当者
             </label>
 
-            <select
-              value={editData.salesStaff || ""}
-              onChange={(e) =>
+            <input
+              value={salesStaffKeyword}
+              onChange={(e) => {
+                setSalesStaffKeyword(e.target.value);
+                setShowSalesStaffList(true);
+
                 setEditData({
                   ...editData,
-                  salesStaff: e.target.value,
-                })
-              }
+                  salesStaff: "",
+                });
+              }}
+              onFocus={() => setShowSalesStaffList(true)}
+              placeholder="営業担当者を検索"
               className="w-full rounded-lg border border-gray-300 px-4 py-2"
-            >
-              <option value="">選択してください</option>
+            />
 
-              {staffs.map((staff) => (
-                <option key={staff.id} value={staff.name}>
-                  {staff.name}
-                </option>
-              ))}
-            </select>
+            {showSalesStaffList && (
+              <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                {filteredSalesStaffs.length > 0 ? (
+                  filteredSalesStaffs.map((staff) => (
+                    <button
+                      type="button"
+                      key={staff.id}
+                      onClick={() => {
+                        setEditData({
+                          ...editData,
+                          salesStaff: staff.name,
+                        });
+
+                        setSalesStaffKeyword(staff.name);
+                        setShowSalesStaffList(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-blue-100"
+                    >
+                      {staff.name}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-gray-500">
+                    該当する営業担当者がありません
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div ref={managerSearchRef} className="relative">
