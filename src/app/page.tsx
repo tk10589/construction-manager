@@ -224,27 +224,73 @@ export default function Home() {
       "案件番号",
       "種別",
       "案件名",
+      "受注日",
       "発注者",
+      "発注者担当者",
+      "営業担当者",
       "担当者",
+      "外注依頼先",
       "受注金額",
+      "実行予算",
+      "外注費",
+      "原価率",
+      "粗利",
+      "着工日",
+      "完了日",
       "進捗",
+      "備考",
     ];
 
     // データ（今表示されているものを使う）
-    const rows = sortedProjects.map((p) => [
-      p.code,
-      p.type,
-      p.name,
-      p.client,
-      p.manager,
-      p.amount,
-      p.status,
-    ]);
+    const rows = sortedProjects.map((p) => {
+      const costRate =
+        p.budget && p.amount > 0
+        ? (p.budget / p.amount).toFixed(4)
+        : "";
+      const grossProfit =
+        p.budget !== undefined && p.budget !== null
+          ? p.amount - p.budget
+          : "";
+
+      const formatDate = (date?: string) =>
+        date ? new Date(date).toLocaleDateString("ja-JP") : "";
+
+      const cleanNote = p.note
+        ? p.note.replace(/\r?\n/g, " ")
+        : "";
+
+      return [
+        p.code,
+        p.type,
+        p.name,
+        formatDate(p.orderDate),
+        p.client,
+        p.clientStaff || "",
+        p.salesStaff || "",
+        p.manager,
+        p.outsourceCompany || "",
+        p.amount,
+        p.budget ?? "",
+        p.outsourceCost ?? "",
+        costRate,
+        grossProfit,
+        formatDate(p.startDate),
+        formatDate(p.endDate),
+        p.status,
+        cleanNote,
+      ];
+    });
 
     // CSV文字列作成
     const csvContent = [header, ...rows]
       .map((row) =>
-        row.map((cell) => `"${cell}"`).join(",")
+        row
+          .map((cell) => {
+            const value = String(cell ?? "");
+            const escaped = value.replace(/"/g, '""');
+            return `"${escaped}"`;
+          })
+          .join(",")
       )
       .join("\n");
 
