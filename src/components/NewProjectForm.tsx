@@ -211,7 +211,7 @@ export default function NewProjectForm({
 
   return (
     <div className="max-w-2xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm">
-      <div className="max-h-[60vh] space-y-5 overflow-y-auto px-6 py-5">
+      <div className="max-h-[60vh] space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
         <div>
           <label className="mb-1 block text-sm font-semibold">
             種別
