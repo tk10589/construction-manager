@@ -231,7 +231,7 @@ export default function ProjectDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
       onClick={onClose}
       >
       <div
@@ -292,7 +292,7 @@ export default function ProjectDetailModal({
 
         {/* 編集モード */}
         {isEditing && editData && (
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto px-6 py-4">
+          <div className="max-h-[60vh] overflow-y-auto overscroll-contain touch-auto px-6 py-4">
 
             <div>
               <label className="mb-1 block text-sm font-semibold">

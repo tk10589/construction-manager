@@ -168,7 +168,7 @@ export default function EditModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -176,7 +176,7 @@ export default function EditModal({
       >
         <h2 className="text-xl font-bold">案件編集</h2>
 
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto px-6 py-4">
+        <div className="max-h-[60vh] overflow-y-auto overscroll-contain touch-auto px-6 py-4">
           <div>
             <label className="mb-1 block text-sm font-semibold">
               案件番号
