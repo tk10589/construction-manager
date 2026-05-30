@@ -269,9 +269,9 @@ export default function Home() {
 
 
   return (   
-    <main className="h-screen overflow-hidden bg-gray-100 text-gray-900">
-      <div className="flex h-screen overflow-hidden">
-        <aside className="sticky top-0 h-screen w-64 shrink-0 overflow-hidden bg-gray-900 p-6 text-white">
+    <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
+      <div className="flex h-full overflow-hidden">
+        <aside className="h-full w-64 shrink-0 overflow-hidden bg-gray-900 p-6 text-white">
           <h1 className="text-xl font-bold">施工管理</h1>
           <p className="mt-2 text-sm text-gray-300">Construction Manager</p>
           
@@ -325,7 +325,7 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="h-screen min-w-0 flex-1 overflow-hidden p-4 md:p-8">
+        <section className="min-w-0 flex-1 overflow-hidden p-4 md:p-8">
           <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
             <p className="text-sm font-bold text-blue-700">Dashboard</p>
 

@@ -210,8 +210,8 @@ export default function NewProjectForm({
   };
 
   return (
-    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm text-sm md:text-base">
-      <div className="max-h-[calc(100vh-300px)] space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:space-y-5 md:px-6 md:py-5">
+    <div className="flex h-full max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm text-sm md:text-base">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:space-y-5 md:px-6 md:py-5">
         <div>
           <label className="mb-1 block text-sm font-semibold">
             種別
@@ -483,13 +483,6 @@ export default function NewProjectForm({
             }}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
           />
-          {/* <input
-            type="number"
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500"
-            placeholder="例：1800000"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          /> */}
         </div>
 
         <div>
@@ -513,16 +506,6 @@ export default function NewProjectForm({
             }}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
           />
-
-          {/* <input
-            value={budget}
-            onChange={(e) => {
-              const value = e.target.value.replace(/[^\d]/g, "");
-              setBudget(value);
-            }}
-            className="w-full rounded border px-3 py-2"
-            placeholder="例: 1000000"
-          /> */}
         </div>
 
         <div>
@@ -605,7 +588,7 @@ export default function NewProjectForm({
         </div> 
       </div>      
       
-      <div className="border-t border-gray-200 px-4 py-3 text-right md:px-6 md:py-4">
+      <div className="shrink-0 border-t border-gray-200 px-4 py-3 text-right md:px-6 md:py-4">
         <button
           onClick={handleSubmit}
           className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-700 md:px-6 md:text-base"
