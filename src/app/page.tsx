@@ -52,6 +52,8 @@ export default function Home() {
   const [clients, setClients] = useState<any[]>([]);
   const [staffs, setStaffs] = useState<any[]>([]);
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   
   const fetchProjects = async () => {
     try {
@@ -317,9 +319,28 @@ export default function Home() {
   return (   
     <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
       <div className="flex h-full overflow-hidden">
-        <aside className="h-full w-64 shrink-0 overflow-hidden bg-gray-900 p-6 text-white">
-          <h1 className="text-xl font-bold">施工管理</h1>
-          <p className="mt-2 text-sm text-gray-300">Construction Manager</p>
+        <aside
+          className={`h-full shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 ${
+            isSidebarCollapsed ? "w-16" : "w-64"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            {!isSidebarCollapsed && (
+              <div>
+                <h1 className="text-xl font-bold">施工管理</h1>
+                <p className="mt-2 text-sm text-gray-300">
+                  Construction Manager
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+              className="rounded bg-gray-700 px-2 py-1 text-sm text-white hover:bg-gray-600"
+            >
+              {isSidebarCollapsed ? "▶" : "◀"}
+            </button>
+          </div>
           
           <nav className="mt-8 space-y-2">
             <input
@@ -353,20 +374,22 @@ export default function Home() {
               <button
                 key={item.id}
                 onClick={() => setSelectedMenu(item)}
-                className={`w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                className={`w-full rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${
                   selectedMenu.id === item.id
                     ? "bg-blue-600 text-white"
                     : "text-gray-100 hover:bg-gray-700"
                 }`}
+                title={item.title}
               >
-                {item.title}
+                {isSidebarCollapsed ? item.title.slice(0, 1) : item.title}
               </button>
             ))}
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="mt-6 w-full rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-600"
+              className="mt-6 w-full rounded-lg bg-gray-700 px-3 py-2 text-sm font-bold text-white hover:bg-gray-600"
+              title="ログアウト"
             >
-              ログアウト
+              {isSidebarCollapsed ? "出" : "ログアウト"}
             </button>            
           </nav>
         </aside>
