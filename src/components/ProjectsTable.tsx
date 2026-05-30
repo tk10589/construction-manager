@@ -51,11 +51,11 @@ export default function ProjectsTable({
 
   return (
     <div className="max-h-[calc(100vh-260px)] overflow-auto overscroll-contain rounded-lg border border-gray-300">
-      <table className="min-w-[2200px] table-fixed border-collapse bg-white text-sm">
+      <table className="min-w-[1800px] lg:min-w-[2200px] table-fixed border-collapse bg-white text-xs lg:text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
-              className="sticky top-0 left-0 z-50 w-[130px] min-w-[130px] bg-gray-100  px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
+              className="sticky top-0 left-0 z-50 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
               onClick={() => {
                 if (sortKey === "code") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -67,10 +67,10 @@ export default function ProjectsTable({
             >
               案件番号 {sortKey === "code" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="sticky top-0 left-[120px] z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
+            <th className="lg:sticky lg:top-0 lg:left-[120px] lg:z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
-            <th className="sticky top-0 left-[220px] z-50 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
+            <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
               案件名
               </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
@@ -110,7 +110,7 @@ export default function ProjectsTable({
             <th className="sticky top-0 z-40 w-[180px] min-w-[180px] px-4 py-3 font-bold">
               備考
             </th>
-            <th className="sticky top-0 right-0 z-40 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
+            <th className="lg:sticky lg:top-0 lg:right-0 lg:z-50 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
               操作
             </th>
           </tr>
@@ -124,7 +124,7 @@ export default function ProjectsTable({
                 {project.code}
               </td>
               {/* 種別 */}
-              <td className="sticky left-[120px] z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
+              <td className="lg:sticky lg:left-[120px] lg:z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(
                     project.type
@@ -224,7 +224,7 @@ export default function ProjectsTable({
                   "-"
                 )}
               </td>
-              <td className="sticky right-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
+              <td className="lg:sticky lg:right-0 lg:z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center lg:shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
                 <div className="flex justify-center gap-2">
                   <button
                     onClick={() => onEdit(project)}
