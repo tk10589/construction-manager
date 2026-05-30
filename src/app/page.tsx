@@ -21,7 +21,6 @@ import {
 
 const menuItems = [
   { id: "projects", title: "案件管理", description: "案件一覧、進捗、受注金額を確認します。" },
-  { id: "new-project", title: "新規案件登録", description: "現場名、住所、担当者、受注金額を登録します。" },
   { id: "materials", title: "材料管理", description: "使用材料、発注状況、在庫状況を管理します。" },
   { id: "progress", title: "進捗管理", description: "未着手、施工中、完了などの状況を確認します。" },
   { id: "settings", title: "設定", description: "マスタ管理を行います" },
@@ -46,6 +45,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState<"code" | "amount">("code");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   
   const [toast, setToast] = useState<string | null>(null);
   
@@ -138,7 +138,7 @@ export default function Home() {
       await createProjectApi(newProject);
 
       await fetchProjects();
-      setSelectedMenu(menuItems[0]);
+      setSelectedMenu(menuItems.find((item) => item.id === "projects")!);
 
       return true;
     } catch (error) {
@@ -337,12 +337,23 @@ export default function Home() {
               {selectedMenu.description}
             </p>
 
-            <button
-              onClick={exportCSV}
-              className="ml-2 w-fit self-start rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
-            >
-              CSV出力
-            </button>
+            {selectedMenu.id === "projects" && (
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => setIsNewProjectModalOpen(true)}
+                  className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                >
+                  ＋ 新規案件登録
+                </button>
+
+                <button
+                  onClick={exportCSV}
+                  className="w-fit rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
+                >
+                  CSV出力
+                </button>
+              </div>
+            )}
 
             <div className="mt-6 min-h-0 flex-1 overflow-hidden">
               {selectedMenu.id === "projects" ? (
@@ -360,13 +371,7 @@ export default function Home() {
                     setSelectedProject={setSelectedProject}
                   />
                 )
-              ) : selectedMenu.id === "new-project" ? (
-                <NewProjectForm
-                  onAdd={addProject}
-                  clients={clients}
-                  staffs={staffs} 
-                  projectTypes={projectTypes}
-                />
+
               ) : selectedMenu.id === "settings" ? (
                 <SettingsPage
                   onMasterUpdated={async () => {
@@ -427,6 +432,42 @@ export default function Home() {
         <div className="fixed top-5 right-5 z-50">
           <div className="rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg">
             {toast}
+          </div>
+        </div>
+      )}
+
+      {isNewProjectModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
+          onClick={() => setIsNewProjectModalOpen(false)}
+        >
+          <div
+            className="relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg touch-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                新規案件登録
+              </h2>
+            </div>
+
+            <div className="max-h-[calc(85vh-72px)] overflow-hidden">
+              <NewProjectForm
+                onAdd={async (project) => {
+                  const success = await addProject(project);
+
+                  if (success) {
+                    setIsNewProjectModalOpen(false);
+                  }
+
+                  return success;
+                }}
+                onClose={() => setIsNewProjectModalOpen(false)}
+                clients={clients}
+                staffs={staffs}
+                projectTypes={projectTypes}
+              />
+            </div>
           </div>
         </div>
       )}

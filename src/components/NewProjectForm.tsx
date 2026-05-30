@@ -9,6 +9,7 @@ import {
 
 type NewProjectFormProps = {
   onAdd: (project: Omit<Project, "id">) => Promise<boolean>;
+  onClose?: () => void;
   clients: MasterItem[];
   staffs: MasterItem[];
   projectTypes: ProjectType[];
@@ -16,6 +17,7 @@ type NewProjectFormProps = {
 
 export default function NewProjectForm({
   onAdd,
+  onClose,
   clients,
   staffs,
   projectTypes,
@@ -210,8 +212,8 @@ export default function NewProjectForm({
   };
 
   return (
-    <div className="flex h-full max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm text-sm md:text-base">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:space-y-5 md:px-6 md:py-5">
+    <div className="flex h-full max-h-full w-full flex-col overflow-hidden bg-white text-sm md:text-base">
+      <div className="max-h-[60vh] overflow-y-auto overscroll-contain touch-auto px-6 py-5">
         <div>
           <label className="mb-1 block text-sm font-semibold">
             種別
@@ -588,13 +590,23 @@ export default function NewProjectForm({
         </div> 
       </div>      
       
-      <div className="shrink-0 border-t border-gray-200 px-4 py-3 text-right md:px-6 md:py-4">
-        <button
-          onClick={handleSubmit}
-          className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-700 md:px-6 md:text-base"
-        >
-          登録する
-        </button>
+      <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => onClose?.()}
+            className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+          >
+            閉じる
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700"
+          >
+            登録する
+          </button>
+        </div>
       </div>
     </div>
   );
