@@ -307,10 +307,10 @@ export default function ProjectDetailModal({
       onClick={onClose}
       >
       <div
-        className="relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg"
+        className="relative z-[110] flex w-full max-w-2xl max-h-[85vh] flex-col overflow-hidden rounded-xl bg-white shadow-lg touch-auto"
         onClick={(e) => e.stopPropagation()}
         >
-        <div className="border-b border-gray-200 px-6 py-4">
+        <div className="shrink-0 border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-bold text-gray-900">
           案件詳細
           </h2>
@@ -318,60 +318,62 @@ export default function ProjectDetailModal({
 
         {/* 表示モード */}
         {!isEditing && (
-          <div className="px-6 py-3 mt-4 space-y-2 text-sm">
-            <p><b>案件番号：</b>{selectedProject.code}</p>
-            <p><b>受注日：</b>
-              {selectedProject.orderDate
-              ? new Date(selectedProject.orderDate).toLocaleDateString()
-              : "-"}
-            </p>
-            <p><b>種別：</b>{selectedProject.type}</p>
-            <p><b>案件名：</b>{selectedProject.name}</p>
-            <p><b>発注者：</b>{selectedProject.client}</p>
-            <p><b>発注者担当者：</b>{selectedProject.clientStaff || "-"}</p>
-            <p><b>営業担当者：</b>{selectedProject.salesStaff || "-"}</p>
-            <p><b>担当者：</b>{selectedProject.manager}</p>
-            <p><b>外注依頼先：</b>{selectedProject.outsourceCompany || "-"}</p>
-            <p><b>受注金額：</b>¥{selectedProject.amount.toLocaleString()}</p>
-            <p><b>追加受注金額：</b>{formatMoney(selectedProject.additionalAmount)}</p>
-            <p><b>売上合計：</b>¥{getTotalAmount(selectedProject).toLocaleString("ja-JP")}</p>
-
-            <hr className="my-2" />
-
-            <p><b>材料費：</b>{formatMoney(selectedProject.materialCost)}</p>
-            <p><b>労務費：</b>{formatMoney(selectedProject.laborCost)}</p>
-            <p><b>経費他：</b>{formatMoney(selectedProject.expenseCost)}</p>
-            <p><b>外注費：</b>{formatMoney(selectedProject.outsourceCost)}</p>
-
-            <hr className="my-2" />
-            
-            <p><b>実行予算：</b>¥{getExecutionBudget(selectedProject).toLocaleString("ja-JP")}</p>
-            <p>
-              <b>原価率：</b>
-              {getCostRate(selectedProject) !== null
-                ? `${(getCostRate(selectedProject)! * 100).toFixed(1)}%`
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 text-sm">
+            <div className="space-y-2">
+              <p><b>案件番号：</b>{selectedProject.code}</p>
+              <p><b>受注日：</b>
+                {selectedProject.orderDate
+                ? new Date(selectedProject.orderDate).toLocaleDateString()
                 : "-"}
-            </p>
+              </p>
+              <p><b>種別：</b>{selectedProject.type}</p>
+              <p><b>案件名：</b>{selectedProject.name}</p>
+              <p><b>発注者：</b>{selectedProject.client}</p>
+              <p><b>発注者担当者：</b>{selectedProject.clientStaff || "-"}</p>
+              <p><b>営業担当者：</b>{selectedProject.salesStaff || "-"}</p>
+              <p><b>担当者：</b>{selectedProject.manager}</p>
+              <p><b>外注依頼先：</b>{selectedProject.outsourceCompany || "-"}</p>
+              <p><b>受注金額：</b>¥{selectedProject.amount.toLocaleString()}</p>
+              <p><b>追加受注金額：</b>{formatMoney(selectedProject.additionalAmount)}</p>
+              <p><b>売上合計：</b>¥{getTotalAmount(selectedProject).toLocaleString("ja-JP")}</p>
 
-            <p>
-              <b>粗利：</b>
-              ¥{getGrossProfit(selectedProject).toLocaleString("ja-JP")}
-            </p>
-            <p>
-              <b>着工日：</b>
-              {selectedProject.startDate
-              ? new Date(selectedProject.startDate).toLocaleDateString()
-              : "-"}
-            </p>
+              <hr className="my-2" />
 
-            <p>
-              <b>完了日：</b>
-              {selectedProject.endDate
-              ? new Date(selectedProject.endDate).toLocaleDateString()
-              : "-"}
-            </p>
-            <p><b>進捗：</b>{selectedProject.status}</p>
-            <p><b>備考：</b>{selectedProject.note || "-"}</p>
+              <p><b>材料費：</b>{formatMoney(selectedProject.materialCost)}</p>
+              <p><b>労務費：</b>{formatMoney(selectedProject.laborCost)}</p>
+              <p><b>経費他：</b>{formatMoney(selectedProject.expenseCost)}</p>
+              <p><b>外注費：</b>{formatMoney(selectedProject.outsourceCost)}</p>
+
+              <hr className="my-2" />
+
+              <p><b>実行予算：</b>¥{getExecutionBudget(selectedProject).toLocaleString("ja-JP")}</p>
+              <p>
+                <b>原価率：</b>
+                {getCostRate(selectedProject) !== null
+                  ? `${(getCostRate(selectedProject)! * 100).toFixed(1)}%`
+                  : "-"}
+              </p>
+
+              <p>
+                <b>粗利：</b>
+                ¥{getGrossProfit(selectedProject).toLocaleString("ja-JP")}
+              </p>
+              <p>
+                <b>着工日：</b>
+                {selectedProject.startDate
+                ? new Date(selectedProject.startDate).toLocaleDateString()
+                : "-"}
+              </p>
+
+              <p>
+                <b>完了日：</b>
+                {selectedProject.endDate
+                ? new Date(selectedProject.endDate).toLocaleDateString()
+                : "-"}
+              </p>
+              <p><b>進捗：</b>{selectedProject.status}</p>
+              <p><b>備考：</b>{selectedProject.note || "-"}</p>
+            </div>
           </div>
         )}
 
@@ -926,7 +928,7 @@ export default function ProjectDetailModal({
         )}  
 
         {/* ボタン */}
-        <div className="flex justify-between border-t border-gray-200 px-6 py-4">
+        <div className="shrink-0 flex justify-between border-t border-gray-200 px-6 py-4">
           {!isEditing ? (
           <button
             onClick={() => {
