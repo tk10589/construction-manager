@@ -56,6 +56,34 @@ export default function EditModal({
       : ""
   );
 
+  const [additionalAmount, setAdditionalAmount] = useState(
+    project.additionalAmount !== undefined &&
+      project.additionalAmount !== null
+      ? project.additionalAmount.toLocaleString("ja-JP")
+      : ""
+  );
+
+  const [materialCost, setMaterialCost] = useState(
+    project.materialCost !== undefined &&
+      project.materialCost !== null
+      ? project.materialCost.toLocaleString("ja-JP")
+      : ""
+  );
+
+  const [laborCost, setLaborCost] = useState(
+    project.laborCost !== undefined &&
+      project.laborCost !== null
+      ? project.laborCost.toLocaleString("ja-JP")
+      : ""
+  );
+
+  const [expenseCost, setExpenseCost] = useState(
+    project.expenseCost !== undefined &&
+      project.expenseCost !== null
+      ? project.expenseCost.toLocaleString("ja-JP")
+      : ""
+  );
+
   const [salesStaffKeyword, setSalesStaffKeyword] = useState(
     project.salesStaff || ""
   );
@@ -71,6 +99,10 @@ export default function EditModal({
     };
 
     window.addEventListener("keydown", handleKeyDown);
+
+    const toNumber = (value: string) => {
+      return value ? Number(value.replace(/,/g, "")) : 0;
+    };
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -95,6 +127,34 @@ export default function EditModal({
       project.outsourceCost !== undefined &&
         project.outsourceCost !== null
         ? project.outsourceCost.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setAdditionalAmount(
+      project.additionalAmount !== undefined &&
+        project.additionalAmount !== null
+        ? project.additionalAmount.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setMaterialCost(
+      project.materialCost !== undefined &&
+        project.materialCost !== null
+        ? project.materialCost.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setLaborCost(
+      project.laborCost !== undefined &&
+        project.laborCost !== null
+        ? project.laborCost.toLocaleString("ja-JP")
+        : ""
+    );
+
+    setExpenseCost(
+      project.expenseCost !== undefined &&
+        project.expenseCost !== null
+        ? project.expenseCost.toLocaleString("ja-JP")
         : ""
     );
 
@@ -164,6 +224,32 @@ export default function EditModal({
       .toLowerCase()
       .includes(salesStaffKeyword.toLowerCase())
   );
+
+  const toNumber = (value: string) => {
+    return value ? Number(value.replace(/,/g, "")) : 0;
+  };
+
+  const formatMoney = (value?: number | null) => {
+    return value !== undefined && value !== null
+      ? `¥${value.toLocaleString("ja-JP")}`
+      : "-";
+  };
+
+  const editTotalAmount =
+    toNumber(amount) + toNumber(additionalAmount);
+
+  const editExecutionBudget =
+    toNumber(materialCost) +
+    toNumber(laborCost) +
+    toNumber(expenseCost) +
+    toNumber(outsourceCost);
+
+  const editGrossProfit = editTotalAmount - editExecutionBudget;
+
+  const editCostRate =
+    editTotalAmount > 0
+      ? editExecutionBudget / editTotalAmount
+      : null;
 
   return (
     <div
@@ -544,32 +630,103 @@ export default function EditModal({
 
           <div>
             <label className="mb-1 block text-sm font-semibold">
-              実行予算
+              追加受注金額
             </label>
 
             <input
-              value={budget}
+              value={additionalAmount}
               onChange={(e) => {
-                const raw = e.target.value.replace(/,/g, "");
-
-                if (!/^\d*$/.test(raw)) return;
-
-                setBudget(raw);
+                const value = e.target.value.replace(/[^\d]/g, "");
+                setAdditionalAmount(value);
               }}
               onFocus={() => {
-                setBudget(budget.replace(/,/g, ""));
+                setAdditionalAmount(additionalAmount.replace(/,/g, ""));
               }}
               onBlur={() => {
-                if (!budget) return;
-
-                setBudget(
-                  Number(budget.replace(/,/g, "")).toLocaleString("ja-JP")
+                if (!additionalAmount) return;
+                setAdditionalAmount(
+                  Number(additionalAmount.replace(/,/g, "")).toLocaleString("ja-JP")
                 );
               }}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
             />
           </div>
 
+          <p>
+            <b>売上合計：</b>¥{editTotalAmount.toLocaleString("ja-JP")}
+          </p>
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              材料費
+            </label>
+
+            <input
+              value={materialCost}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^\d]/g, "");
+                setMaterialCost(value);
+              }}
+              onFocus={() => {
+                setMaterialCost(materialCost.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!materialCost) return;
+                setMaterialCost(
+                  Number(materialCost.replace(/,/g, "")).toLocaleString("ja-JP")
+                );
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              労務費
+            </label>
+
+            <input
+              value={laborCost}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^\d]/g, "");
+                setLaborCost(value);
+              }}
+              onFocus={() => {
+                setLaborCost(laborCost.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!laborCost) return;
+                setLaborCost(
+                  Number(laborCost.replace(/,/g, "")).toLocaleString("ja-JP")
+                );
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold">
+              経費他
+            </label>
+
+            <input
+              value={expenseCost}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^\d]/g, "");
+                setExpenseCost(value);
+              }}
+              onFocus={() => {
+                setExpenseCost(expenseCost.replace(/,/g, ""));
+              }}
+              onBlur={() => {
+                if (!expenseCost) return;
+                setExpenseCost(
+                  Number(expenseCost.replace(/,/g, "")).toLocaleString("ja-JP")
+                );
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
+            />
+          </div>
+          
           <div>
             <label className="mb-1 block text-sm font-semibold">
               外注費
@@ -596,6 +753,18 @@ export default function EditModal({
               }}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right"
             />
+          </div>
+
+          <div className="space-y-1 rounded-lg bg-gray-100 px-4 py-3 text-sm font-bold text-gray-800">
+            <p>売上合計：¥{editTotalAmount.toLocaleString("ja-JP")}</p>
+            <p>実行予算：¥{editExecutionBudget.toLocaleString("ja-JP")}</p>
+            <p>
+              原価率：
+              {editCostRate !== null
+                ? `${(editCostRate * 100).toFixed(1)}%`
+                : "-"}
+            </p>
+            <p>粗利：¥{editGrossProfit.toLocaleString("ja-JP")}</p>
           </div>
 
           <div>
@@ -708,6 +877,11 @@ export default function EditModal({
                 ? Number(outsourceCost.replace(/,/g, ""))
                 : 0;
 
+              const numericAdditionalAmount = toNumber(additionalAmount);
+              const numericMaterialCost = toNumber(materialCost);
+              const numericLaborCost = toNumber(laborCost);
+              const numericExpenseCost = toNumber(expenseCost);
+
               if (!editData.code.trim()) {
                 newErrors.code = "案件番号を入力してください";
               }
@@ -741,7 +915,10 @@ export default function EditModal({
               onSave({
                 ...editData,
                 amount: numericAmount,
-                budget: numericBudget,
+                additionalAmount: numericAdditionalAmount,
+                materialCost: numericMaterialCost,
+                laborCost: numericLaborCost,
+                expenseCost: numericExpenseCost,
                 outsourceCost: numericOutsourceCost,
               });
             }}

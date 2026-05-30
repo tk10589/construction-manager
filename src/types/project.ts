@@ -13,6 +13,12 @@ export type Project = {
   outsourceCompany?: string;
   outsourceCost?: number;
 
+  additionalAmount?: number;
+
+  materialCost?: number;
+  laborCost?: number;
+  expenseCost?: number;
+
   amount: number;
   budget?: number;
 

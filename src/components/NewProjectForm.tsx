@@ -57,6 +57,11 @@ export default function NewProjectForm({
 
   const salesStaffSearchRef = useRef<HTMLDivElement>(null);
 
+  const [additionalAmount, setAdditionalAmount] = useState("");
+  const [materialCost, setMaterialCost] = useState("");
+  const [laborCost, setLaborCost] = useState("");
+  const [expenseCost, setExpenseCost] = useState("");
+
   const [errors, setErrors] = useState({
     name: "",
     client: "",
@@ -125,15 +130,25 @@ export default function NewProjectForm({
       .includes(salesStaffKeyword.toLowerCase())
   );
 
+  const toNumber = (value: string) => {
+    return value ? Number(value.replace(/,/g, "")) : 0;
+  };
+
   const handleSubmit = async () => {
     
-    const numericAmount = Number(amount.replace(/,/g, ""));
-    const numericBudget = budget
-      ? Number(budget.replace(/,/g, ""))
-      : undefined;
-    const numericOutsourceCost = outsourceCost
-      ? Number(outsourceCost.replace(/,/g, ""))
-      : 0;
+    // const numericAmount = Number(amount.replace(/,/g, ""));
+    // const numericBudget = budget
+    //   ? Number(budget.replace(/,/g, ""))
+    //   : undefined;
+    // const numericOutsourceCost = outsourceCost
+    //   ? Number(outsourceCost.replace(/,/g, ""))
+    //   : 0;
+    const numericAmount = toNumber(amount);
+    const numericAdditionalAmount = toNumber(additionalAmount);
+    const numericMaterialCost = toNumber(materialCost);
+    const numericLaborCost = toNumber(laborCost);
+    const numericExpenseCost = toNumber(expenseCost);
+    const numericOutsourceCost = toNumber(outsourceCost);
 
     if (!code || !type || !name || !client || !manager || !amount) {
       alert("未入力の項目があります。");
@@ -165,22 +180,21 @@ export default function NewProjectForm({
       salesStaff: salesStaff || undefined,
       clientStaff: clientStaff || undefined,
       outsourceCompany: outsourceCompany || undefined,
-      outsourceCost: numericOutsourceCost,
 
       amount: numericAmount,
-      budget: numericBudget,
+      additionalAmount: numericAdditionalAmount,
 
-      status,
+      materialCost: numericMaterialCost,
+      laborCost: numericLaborCost,
+      expenseCost: numericExpenseCost,
+      outsourceCost: numericOutsourceCost,
 
       note: note || undefined,
 
+      status,
       orderDate: orderDate || undefined,
-
       startDate,
       endDate,
-
-      // clients,
-      // staffs,
     });
     // リセット（成功後）
     if (!success) {
@@ -209,6 +223,11 @@ export default function NewProjectForm({
 
     setSalesStaffKeyword("");
     setShowSalesStaffList(false);
+
+    setAdditionalAmount("");
+    setMaterialCost("");
+    setLaborCost("");
+    setExpenseCost("");
   };
 
   return (
@@ -488,22 +507,96 @@ export default function NewProjectForm({
         </div>
 
         <div>
-          <label className="text-sm">実行予算</label>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            追加受注金額
+          </label>
 
           <input
-            type="text"
-            value={budget}
+            value={additionalAmount}
             onChange={(e) => {
               const value = e.target.value.replace(/[^\d]/g, "");
-              setBudget(value);
+              setAdditionalAmount(value);
             }}
             onFocus={() => {
-              setBudget(budget.replace(/,/g, ""));
+              setAdditionalAmount(additionalAmount.replace(/,/g, ""));
             }}
             onBlur={() => {
-              if (!budget) return;
-              setBudget(
-                Number(budget.replace(/,/g, "")).toLocaleString("ja-JP")
+              if (!additionalAmount) return;
+              setAdditionalAmount(
+                Number(additionalAmount.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            placeholder="例：300000"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            材料費
+          </label>
+
+          <input
+            value={materialCost}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setMaterialCost(value);
+            }}
+            onFocus={() => {
+              setMaterialCost(materialCost.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!materialCost) return;
+              setMaterialCost(
+                Number(materialCost.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            労務費
+          </label>
+
+          <input
+            value={laborCost}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setLaborCost(value);
+            }}
+            onFocus={() => {
+              setLaborCost(laborCost.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!laborCost) return;
+              setLaborCost(
+                Number(laborCost.replace(/,/g, "")).toLocaleString("ja-JP")
+              );
+            }}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-800">
+            経費他
+          </label>
+
+          <input
+            value={expenseCost}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setExpenseCost(value);
+            }}
+            onFocus={() => {
+              setExpenseCost(expenseCost.replace(/,/g, ""));
+            }}
+            onBlur={() => {
+              if (!expenseCost) return;
+              setExpenseCost(
+                Number(expenseCost.replace(/,/g, "")).toLocaleString("ja-JP")
               );
             }}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-right text-gray-900"
@@ -535,6 +628,17 @@ export default function NewProjectForm({
           />
         </div>
 
+        <div className="rounded-lg bg-gray-100 px-4 py-3 text-sm font-bold text-gray-800">
+          実行予算：
+          ¥
+          {(
+            toNumber(materialCost) +
+            toNumber(laborCost) +
+            toNumber(expenseCost) +
+            toNumber(outsourceCost)
+          ).toLocaleString("ja-JP")}
+        </div>
+        
         <div>
           <label className="mb-1 block text-sm font-semibold text-gray-800">
             進捗

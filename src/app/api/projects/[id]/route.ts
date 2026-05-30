@@ -57,6 +57,27 @@ const project = await prisma.project.update({
       body.outsourceCost !== undefined
         ? Number(body.outsourceCost)
         : null,
+    
+    additionalAmount:
+      body.additionalAmount !== undefined
+        ? Number(body.additionalAmount)
+        : null,
+
+    materialCost:
+      body.materialCost !== undefined
+        ? Number(body.materialCost)
+        : null,
+
+    laborCost:
+      body.laborCost !== undefined
+        ? Number(body.laborCost)
+        : null,
+
+    expenseCost:
+      body.expenseCost !== undefined
+        ? Number(body.expenseCost)
+        : null,
+        
     amount: Number(body.amount),
     budget: body.budget ?? null,
     status: body.status,

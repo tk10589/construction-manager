@@ -87,6 +87,26 @@ export async function POST(request: Request) {
         ? Number(body.outsourceCost)
         : null,
 
+      additionalAmount:
+        body.additionalAmount !== undefined
+          ? Number(body.additionalAmount)
+          : null,
+
+      materialCost:
+        body.materialCost !== undefined
+          ? Number(body.materialCost)
+          : null,
+
+      laborCost:
+        body.laborCost !== undefined
+          ? Number(body.laborCost)
+          : null,
+
+      expenseCost:
+        body.expenseCost !== undefined
+          ? Number(body.expenseCost)
+          : null,  
+
       amount: body.amount,
       budget: body.budget,
 

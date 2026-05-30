@@ -2,6 +2,12 @@
 
 import { Project } from "@/types/project";
 import { useState } from "react";
+import {
+  getTotalAmount,
+  getExecutionBudget,
+  getGrossProfit,
+  getCostRate,
+} from "@/lib/projectCalculations";
 
 type ProjectsTableProps = {
   projects: Project[];
@@ -53,8 +59,8 @@ export default function ProjectsTable({
   };
 
   return (
-    <div className="max-h-[calc(100vh-260px)] overflow-auto overscroll-contain rounded-lg border border-gray-300">
-      <table className="min-w-[2000px] lg:min-w-[2300px] table-fixed border-collapse bg-white text-xs lg:text-sm">
+    <div className="h-full min-h-[260px] overflow-auto overscroll-contain rounded-lg border border-gray-300">
+      <table className="min-w-[2200px] lg:min-w-[2500px] table-fixed border-collapse bg-white text-xs lg:text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
@@ -89,7 +95,7 @@ export default function ProjectsTable({
               外注依頼先
             </th>
             <th
-              className="sticky top-0 z-40 px-4 py-3 font-bold text-center cursor-pointer hover:bg-gray-200"
+              className="sticky top-0 z-40 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-right"
               onClick={() => {
                 if (sortKey === "amount") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -101,12 +107,25 @@ export default function ProjectsTable({
             >
               受注金額 {sortKey === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">実行予算</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">
-              外注費
+            <th className="sticky top-0 z-40 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-right">
+              追加受注
             </th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">原価率</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold text-center">粗利</th>            
+
+            <th className="sticky top-0 z-40 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-right">
+              売上合計
+            </th>
+
+            <th className="sticky top-0 z-40 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-right">
+              実行予算
+            </th>
+
+            <th className="sticky top-0 z-40 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold text-right">
+              原価率
+            </th>
+
+            <th className="sticky top-0 z-40 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-center">
+              粗利
+            </th>           
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">着工日</th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">完了日</th>
             <th className="sticky top-0 z-40 w-[100px] min-w-[100px] px-4 py-3 font-bold whitespace-nowrap">進捗</th>
@@ -166,36 +185,60 @@ export default function ProjectsTable({
                 {project.outsourceCompany || "-"}
               </td>
               {/* 受注金額 */}
-              <td className="px-4 py-3 font-semibold text-gray-900 text-center">
-                ¥{project.amount.toLocaleString() || 0}
+              <td className="w-[120px] min-w-[120px] px-4 py-3 text-right">
+                ¥{project.amount.toLocaleString("ja-JP")}
               </td>
-              {/* 実行予算 */}
-              <td className="px-4 py-3 text-center">
-                {project.budget
-                  ? `¥${project.budget.toLocaleString()}`
+
+              {/* 追加受注 */}
+              <td className="w-[120px] min-w-[120px] px-4 py-3 text-right">
+                {project.additionalAmount !== undefined &&
+                project.additionalAmount !== null
+                  ? `¥${project.additionalAmount.toLocaleString("ja-JP")}`
                   : "-"}
               </td>
+
+              {/* 売上合計 */}
+              <td className="w-[120px] min-w-[120px] px-4 py-3 text-right font-semibold">
+                ¥{getTotalAmount(project).toLocaleString("ja-JP")}
+              </td>
+
+              {/* 実行予算 */}
+              <td className="w-[120px] min-w-[120px] px-4 py-3 text-right">
+                ¥{getExecutionBudget(project).toLocaleString("ja-JP")}
+              </td>
+
               {/* 外注費 */}
-              <td className="px-4 py-3 text-center">
+              {/* <td className="px-4 py-3 text-center">
                 {project.outsourceCost !== undefined &&
                 project.outsourceCost !== null
                   ? `¥${project.outsourceCost.toLocaleString()}`
                   : "-"}
+              </td> */}
+
+              {/* 原価率 */}
+              <td className="w-[100px] min-w-[100px] px-4 py-3 text-right">
+                {getCostRate(project) !== null
+                  ? `${(getCostRate(project)! * 100).toFixed(1)}%`
+                  : "-"}
               </td>
 
               {/* 原価率 */}
-              <td className="px-4 py-3 text-center text-sm text-gray-700">
+              {/* <td className="px-4 py-3 text-center text-sm text-gray-700">
                 {project.budget && project.amount > 0
                   ? `${((project.budget / project.amount) * 100).toFixed(1)}%`
                   : "-"}
-              </td>
+              </td> */}
 
               {/* 粗利計算 */}
-              <td className="px-4 py-3 text-center font-semibold text-gray-900">
+              <td className="w-[120px] min-w-[120px] px-4 py-3 text-right font-semibold">
+                ¥{getGrossProfit(project).toLocaleString("ja-JP")}
+              </td>
+
+              {/* <td className="px-4 py-3 text-center font-semibold text-gray-900">
                 {project.budget
                   ? `¥${(project.amount - project.budget).toLocaleString()}`
                   : "-"}
-              </td>
+              </td> */}
               
               <td className="px-4 py-3 text-sm">
                 {project.startDate
