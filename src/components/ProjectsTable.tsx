@@ -34,6 +34,8 @@ export default function ProjectsTable({
 }: ProjectsTableProps) {
 
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [budgetDetailProject, setBudgetDetailProject] =
+    useState<Project | null>(null);
 
   if (projects.length === 0) {
     return (
@@ -204,16 +206,14 @@ export default function ProjectsTable({
 
               {/* 実行予算 */}
               <td className="w-[120px] min-w-[120px] px-4 py-3 text-right">
-                ¥{getExecutionBudget(project).toLocaleString("ja-JP")}
+                <button
+                  type="button"
+                  onClick={() => setBudgetDetailProject(project)}
+                  className="font-semibold text-blue-600 hover:underline"
+                >
+                  ¥{getExecutionBudget(project).toLocaleString("ja-JP")}
+                </button>
               </td>
-
-              {/* 外注費 */}
-              {/* <td className="px-4 py-3 text-center">
-                {project.outsourceCost !== undefined &&
-                project.outsourceCost !== null
-                  ? `¥${project.outsourceCost.toLocaleString()}`
-                  : "-"}
-              </td> */}
 
               {/* 原価率 */}
               <td className="w-[100px] min-w-[100px] px-4 py-3 text-right">
@@ -222,35 +222,26 @@ export default function ProjectsTable({
                   : "-"}
               </td>
 
-              {/* 原価率 */}
-              {/* <td className="px-4 py-3 text-center text-sm text-gray-700">
-                {project.budget && project.amount > 0
-                  ? `${((project.budget / project.amount) * 100).toFixed(1)}%`
-                  : "-"}
-              </td> */}
-
               {/* 粗利計算 */}
               <td className="w-[120px] min-w-[120px] px-4 py-3 text-right font-semibold">
                 ¥{getGrossProfit(project).toLocaleString("ja-JP")}
               </td>
 
-              {/* <td className="px-4 py-3 text-center font-semibold text-gray-900">
-                {project.budget
-                  ? `¥${(project.amount - project.budget).toLocaleString()}`
-                  : "-"}
-              </td> */}
-              
+              {/* 着工日 */}              
               <td className="px-4 py-3 text-sm">
                 {project.startDate
                   ? new Date(project.startDate).toLocaleDateString()
                   : "-"}
               </td>
 
+              {/* 完了日 */}
               <td className="px-4 py-3 text-sm">
                 {project.endDate
                   ? new Date(project.endDate).toLocaleDateString()
                   : "-"}
               </td>
+
+              {/* 進捗 */}              
               <td className="w-[100px] min-w-[100px] px-4 py-3 whitespace-nowrap">
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
                   {project.status}
@@ -294,6 +285,74 @@ export default function ProjectsTable({
           ))}
         </tbody>
       </table>
+
+      {budgetDetailProject && (
+        <div
+          className="fixed inset-0 z-[120] flex touch-none items-center justify-center bg-black/40 p-4"
+          onClick={() => setBudgetDetailProject(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg touch-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-gray-900">
+              実行予算内訳
+            </h2>
+
+            <p className="mt-2 text-sm text-gray-600">
+              {budgetDetailProject.code} / {budgetDetailProject.name}
+            </p>
+
+            <div className="mt-4 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+              <div className="flex justify-between">
+                <span>材料費</span>
+                <span>
+                  ¥{(budgetDetailProject.materialCost ?? 0).toLocaleString("ja-JP")}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>労務費</span>
+                <span>
+                  ¥{(budgetDetailProject.laborCost ?? 0).toLocaleString("ja-JP")}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>経費他</span>
+                <span>
+                  ¥{(budgetDetailProject.expenseCost ?? 0).toLocaleString("ja-JP")}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>外注費</span>
+                <span>
+                  ¥{(budgetDetailProject.outsourceCost ?? 0).toLocaleString("ja-JP")}
+                </span>
+              </div>
+
+              <div className="border-t border-gray-300 pt-3 font-bold">
+                <div className="flex justify-between">
+                  <span>実行予算合計</span>
+                  <span>
+                    ¥{getExecutionBudget(budgetDetailProject).toLocaleString("ja-JP")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setBudgetDetailProject(null)}
+                className="rounded-lg bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedNote && (
         <div
