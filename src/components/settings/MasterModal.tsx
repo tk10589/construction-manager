@@ -58,18 +58,18 @@ export default function MasterModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="relative z-[110] w-full max-w-lg max-h-[85vh] overflow-hidden rounded-xl bg-white p-6 shadow-xl"
+        className="relative z-[110] w-full max-w-lg max-h-[85vh] overflow-hidden rounded-xl bg-white p-6 shadow-xl touch-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold text-gray-900">
           {titleMap[target]}管理 - {actionMap[action]}
         </h2>
 
-        <div className="mt-4 max-h-[65vh] overflow-y-auto">
+        <div className="mt-4 max-h-[60vh] overflow-y-auto overscroll-contain">
           {action === "list" && (
             <MasterListView items={items} />
           )}

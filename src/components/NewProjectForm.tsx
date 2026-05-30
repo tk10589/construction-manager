@@ -210,8 +210,8 @@ export default function NewProjectForm({
   };
 
   return (
-    <div className="max-w-2xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm">
-      <div className="max-h-[60vh] space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
+    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm text-sm md:text-base">
+      <div className="max-h-[calc(100vh-300px)] space-y-4 overflow-y-auto overscroll-contain px-4 py-4 md:space-y-5 md:px-6 md:py-5">
         <div>
           <label className="mb-1 block text-sm font-semibold">
             種別
@@ -605,10 +605,10 @@ export default function NewProjectForm({
         </div> 
       </div>      
       
-      <div className="border-t border-gray-200 px-6 py-4 text-right">
+      <div className="border-t border-gray-200 px-4 py-3 text-right md:px-6 md:py-4">
         <button
           onClick={handleSubmit}
-          className="rounded-lg bg-blue-600 px-6 py-2 font-bold text-white hover:bg-blue-700"
+          className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-700 md:px-6 md:text-base"
         >
           登録する
         </button>

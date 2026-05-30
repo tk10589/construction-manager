@@ -325,8 +325,8 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="h-screen min-w-0 flex-1 overflow-hidden p-8">
-          <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <section className="h-screen min-w-0 flex-1 overflow-hidden p-4 md:p-8">
+          <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
             <p className="text-sm font-bold text-blue-700">Dashboard</p>
 
             <h2 className="mt-2 text-3xl font-bold text-gray-900">
@@ -344,7 +344,7 @@ export default function Home() {
               CSV出力
             </button>
 
-            <div className="mt-8 min-h-0 flex-1 overflow-hidden">
+            <div className="mt-6 min-h-0 flex-1 overflow-hidden">
               {selectedMenu.id === "projects" ? (
                 loading ? (
                   <p className="text-gray-700">読み込み中...</p>
