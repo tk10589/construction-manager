@@ -1,6 +1,7 @@
 "use client";
 
 import { Project } from "@/types/project";
+import { useState } from "react";
 
 type ProjectsTableProps = {
   projects: Project[];
@@ -25,6 +26,8 @@ export default function ProjectsTable({
   setDeletingProject,
   setSelectedProject,
 }: ProjectsTableProps) {
+
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
 
   if (projects.length === 0) {
     return (
@@ -51,7 +54,7 @@ export default function ProjectsTable({
 
   return (
     <div className="max-h-[calc(100vh-260px)] overflow-auto overscroll-contain rounded-lg border border-gray-300">
-      <table className="min-w-[1800px] lg:min-w-[2200px] table-fixed border-collapse bg-white text-xs lg:text-sm">
+      <table className="min-w-[2000px] lg:min-w-[2300px] table-fixed border-collapse bg-white text-xs lg:text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
@@ -210,11 +213,14 @@ export default function ProjectsTable({
                   {project.status}
                 </span>
               </td>
+              {/* 備考 */}
               <td className="w-[180px] min-w-[180px] px-4 py-3 text-sm">
                 {project.note ? (
                   <button
-                    onClick={() => alert(project.note)}
-                    className="text-left text-blue-600 hover:underline"
+                    type="button"
+                    onClick={() => setSelectedNote(project.note || "")}
+                    className="max-w-[160px] truncate text-left text-blue-600 hover:underline"
+                    title={project.note}
                   >
                     {project.note.length > 10
                       ? `${project.note.slice(0, 10)}...`
@@ -245,6 +251,35 @@ export default function ProjectsTable({
           ))}
         </tbody>
       </table>
+
+      {selectedNote && (
+        <div
+          className="fixed inset-0 z-[120] flex touch-none items-center justify-center bg-black/40 p-4"
+          onClick={() => setSelectedNote(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg touch-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-gray-900">
+              備考
+            </h2>
+
+            <div className="mt-4 max-h-[50vh] overflow-y-auto overscroll-contain whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+              {selectedNote}
+            </div>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setSelectedNote(null)}
+                className="rounded-lg bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
