@@ -78,7 +78,7 @@ export default function ProjectsTable({
             >
               案件番号 {sortKey === "code" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="lg:sticky lg:top-0 lg:left-[120px] lg:z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
+            <th className="sticky top-0 left-[120px] z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
             <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
@@ -134,7 +134,7 @@ export default function ProjectsTable({
             <th className="sticky top-0 z-40 w-[180px] min-w-[180px] px-4 py-3 font-bold">
               備考
             </th>
-            <th className="lg:sticky lg:top-0 lg:right-0 lg:z-50 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
+            <th className="sticky top-0 right-0 z-50 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-center">
               操作
             </th>
           </tr>
@@ -148,7 +148,7 @@ export default function ProjectsTable({
                 {project.code}
               </td>
               {/* 種別 */}
-              <td className="lg:sticky lg:left-[120px] lg:z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
+              <td className="sticky left-[120px] z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(
                     project.type
@@ -264,7 +264,9 @@ export default function ProjectsTable({
                   "-"
                 )}
               </td>
-              <td className="lg:sticky lg:right-0 lg:z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center lg:shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
+              
+              {/* 操作 */}              
+              <td className="sticky right-0 z-40 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
                 <div className="flex justify-center gap-2">
                   <button
                     onClick={() => onEdit(project)}
