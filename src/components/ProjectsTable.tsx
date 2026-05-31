@@ -266,7 +266,7 @@ export default function ProjectsTable({
               </td>
 
               {/* 操作 */}              
-              <td className="sticky right-0 z-40 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
+              <td className="sticky right-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
                 <div className="flex justify-center gap-2">
                   <button
                     onClick={() => onEdit(project)}
