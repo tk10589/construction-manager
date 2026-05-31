@@ -81,7 +81,7 @@ export default function ProjectsTable({
             <th className="sticky top-0 left-[120px] z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
-            <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[260px] min-w-[260px] bg-gray-100 px-4 py-3 font-bold truncate">
+            <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-gray-100 px-4 py-3 font-bold">
               案件名
               </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
@@ -159,7 +159,7 @@ export default function ProjectsTable({
               </td>
               {/* 案件名 */}
               <td
-                className="sticky left-[220px] z-30 w-[260px] min-w-[260px] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline"
+                className="lg:sticky lg:left-[220px] lg:z-30 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline whitespace-normal break-words"
                 onClick={() => setSelectedProject(project)}
               >
                 {project.name}
@@ -264,7 +264,7 @@ export default function ProjectsTable({
                   "-"
                 )}
               </td>
-              
+
               {/* 操作 */}              
               <td className="sticky right-0 z-40 w-[130px] min-w-[130px] bg-white px-4 py-3 text-center shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]">
                 <div className="flex justify-center gap-2">
