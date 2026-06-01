@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Project } from "@/types/project";
+import { Project, FiscalYear } from "@/types/project";
 import ProjectsTable from "@/components/ProjectsTable";
 import NewProjectForm from "@/components/NewProjectForm";
 import EditModal from "@/components/EditModal";
 import SettingsPage from "@/components/settings/SettingsPage";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import DeleteProjectModal from "@/components/DeleteProjectModal";
+import FilterModal from "@/components/FilterModal";
 import {
   fetchProjectsApi,
   fetchClientsApi,
@@ -18,6 +19,21 @@ import {
   updateProjectApi,
   deleteProjectApi,
 } from "@/lib/api";
+import {
+  getTotalAmount,
+  getExecutionBudget,
+  getGrossProfit,
+  getCostRate,
+} from "@/lib/projectCalculations";
+
+type ProjectFilters = {
+  types: string[];
+  clients: string[];
+  clientStaffs: string[];
+  salesStaffs: string[];
+  managers: string[];
+  outsourceCompanies: string[];
+};
 
 const menuItems = [
   { id: "projects", title: "案件管理", description: "案件一覧、進捗、受注金額を確認します。" },
@@ -41,7 +57,7 @@ export default function Home() {
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [keyword, setKeyword] = useState("");
-  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");  //  今後削除予定
   const [sortKey, setSortKey] = useState<"code" | "amount">("code");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -54,7 +70,21 @@ export default function Home() {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  
+  const [fiscalYears, setFiscalYears] = useState<FiscalYear[]>([]);
+  const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string>("all");
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  const [filters, setFilters] = useState<ProjectFilters>({
+    types: [],
+    clients: [],
+    clientStaffs: [],
+    salesStaffs: [],
+    managers: [],
+    outsourceCompanies: [],
+  });  
+
+  // fetch関係
   const fetchProjects = async () => {
     try {
       const data = await fetchProjectsApi(keyword);
@@ -82,9 +112,88 @@ export default function Home() {
     setProjectTypes(typeData);
   };
 
+   // 年度取得関数
+  const fetchFiscalYears = async () => {
+    const res = await fetch("/api/fiscal-years");
+    const data = await res.json();
+
+    setFiscalYears(data);
+  };
+
+  // 案件登録関係
+  const addProject = async (
+    newProject: Omit<Project, "id">
+  ): Promise<boolean> => {
+    try {
+      await createProjectApi(newProject);
+
+      await fetchProjects();
+      setSelectedMenu(menuItems.find((item) => item.id === "projects")!);
+
+      return true;
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の登録に失敗しました。"
+      );
+
+      return false;
+    }
+  };
+
+  // 案件削除関係
+  const confirmDelete = async () => {
+    if (!deletingProject) return;
+
+    try {
+      setIsDeleting(true);
+
+      await deleteProjectApi(deletingProject.id);
+
+      await fetchProjects();
+      setDeletingProject(null);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の削除に失敗しました"
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // 案件編集・更新関係
+  const editProject = (project: Project) => {
+    setEditingProject(project);
+  };
+
+  const updateProject = async (project: Project) => {
+    try {
+      await updateProjectApi(project);
+
+      await fetchProjects();
+      setEditingProject(null);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "案件の更新に失敗しました。"
+      );
+    }
+  };    
+
+  // useEffect関係
   useEffect(() => {
     fetchProjects();
   }, [keyword]);
+
+    // 初期読み込み
+  useEffect(() => {
+    fetchMasters();
+    fetchFiscalYears();
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("keyword");
@@ -108,8 +217,6 @@ export default function Home() {
     localStorage.setItem("typeFilter", typeFilter);
   }, [typeFilter]);
 
-  
-
   useEffect(() => {
     if (!toast) return;
 
@@ -120,90 +227,91 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  
-
-  useEffect(() => {
-    fetchProjects();
-    fetchMasters();
-  }, []);
-
-  // selectedProject が変わった時に初期値
-  
-
-  // 外側クリック処理
-
-
-  const addProject = async (
-    newProject: Omit<Project, "id">
-  ): Promise<boolean> => {
-    try {
-      await createProjectApi(newProject);
-
-      await fetchProjects();
-      setSelectedMenu(menuItems.find((item) => item.id === "projects")!);
-
-      return true;
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "案件の登録に失敗しました。"
-      );
-
-      return false;
-    }
+  // 補助関数
+  const getUniqueValues = (
+    projects: Project[],
+    key: keyof Project
+  ) => {
+    return Array.from(
+      new Set(
+        projects
+          .map((project) => project[key])
+          .filter((value): value is string => {
+            return typeof value === "string" && value.trim() !== "";
+          })
+      )
+    ).sort((a, b) => a.localeCompare(b, "ja"));
   };
 
+  const matchesFilter = (
+    value: string | undefined,
+    selectedValues: string[]
+  ) => {
+    if (selectedValues.length === 0) return true;
+    if (!value) return false;
 
-  const confirmDelete = async () => {
-    if (!deletingProject) return;
-
-    try {
-      setIsDeleting(true);
-
-      await deleteProjectApi(deletingProject.id);
-
-      await fetchProjects();
-      setDeletingProject(null);
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "案件の削除に失敗しました"
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    return selectedValues.includes(value);
   };
-
-  const editProject = (project: Project) => {
-    setEditingProject(project);
-  };
-
-  const updateProject = async (project: Project) => {
-    try {
-      await updateProjectApi(project);
-
-      await fetchProjects();
-      setEditingProject(null);
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "案件の更新に失敗しました。"
-      );
-    }
+    // フィルター対象項目  型設定
+  const filterOptions = {
+    types: getUniqueValues(projects, "type"),
+    clients: getUniqueValues(projects, "client"),
+    clientStaffs: getUniqueValues(projects, "clientStaff"),
+    salesStaffs: getUniqueValues(projects, "salesStaff"),
+    managers: getUniqueValues(projects, "manager"),
+    outsourceCompanies: getUniqueValues(projects, "outsourceCompany"),
   };
 
   
-
-  
-
-  const filteredProjects = projects.filter((p) => {
+  // フィルター処理
+    // フィルター用元データ取得 typeFilteredProjects削除予定
+  const typeFilteredProjects = projects.filter((p) => {
     if (typeFilter === "ALL") return true;
     return p.type === typeFilter;
   });
 
+    // 年度フィルター処理（絞り込み）
+  const selectedFiscalYear =
+    selectedFiscalYearId === "all"
+      ? null
+      : fiscalYears.find(
+          (year) => year.id === Number(selectedFiscalYearId)
+        );
+
+    // 年度末フィルター処理（絞り込み）
+  const fiscalFilteredProjects = typeFilteredProjects.filter((project) => {
+    if (!selectedFiscalYear) return true;
+    if (!project.endDate) return false;
+
+    const projectEndDate = new Date(project.endDate);
+    const startDate = new Date(selectedFiscalYear.startDate);
+    const endDate = new Date(selectedFiscalYear.endDate);
+
+    return projectEndDate >= startDate && projectEndDate <= endDate;
+  });
+
+    // 項目フィルターＡＮＤ処理（絞り込み）
+  const filteredProjects = fiscalFilteredProjects.filter((project) => {
+    return (
+      matchesFilter(project.type, filters.types) &&
+      matchesFilter(project.client, filters.clients) &&
+      matchesFilter(project.clientStaff, filters.clientStaffs) &&
+      matchesFilter(project.salesStaff, filters.salesStaffs) &&
+      matchesFilter(project.manager, filters.managers) &&
+      matchesFilter(project.outsourceCompany, filters.outsourceCompanies)
+    );
+  });
+
+    // 選択中フィルター数（絞り込みカウント表示）
+  const activeFilterCount =
+    filters.types.length +
+    filters.clients.length +
+    filters.clientStaffs.length +
+    filters.salesStaffs.length +
+    filters.managers.length +
+    filters.outsourceCompanies.length;
+
+    // ソート処理（並び替え）
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     if (sortKey === "code") {
       return sortOrder === "asc"
@@ -220,6 +328,8 @@ export default function Home() {
     return 0;
   });
 
+  
+  // ｃｓｖ出力処理
   const exportCSV = () => {
     // ヘッダー
     const header = [
@@ -233,8 +343,13 @@ export default function Home() {
       "担当者",
       "外注依頼先",
       "受注金額",
-      "実行予算",
+      "追加受注金額",
+      "売上合計",
+      "材料費",
+      "労務費",
+      "経費他",
       "外注費",
+      "実行予算",
       "原価率",
       "粗利",
       "着工日",
@@ -245,14 +360,7 @@ export default function Home() {
 
     // データ（今表示されているものを使う）
     const rows = sortedProjects.map((p) => {
-      const costRate =
-        p.budget && p.amount > 0
-        ? (p.budget / p.amount).toFixed(4)
-        : "";
-      const grossProfit =
-        p.budget !== undefined && p.budget !== null
-          ? p.amount - p.budget
-          : "";
+      const costRate = getCostRate(p);
 
       const formatDate = (date?: string) =>
         date ? new Date(date).toLocaleDateString("ja-JP") : "";
@@ -271,11 +379,20 @@ export default function Home() {
         p.salesStaff || "",
         p.manager,
         p.outsourceCompany || "",
+
         p.amount,
-        p.budget ?? "",
-        p.outsourceCost ?? "",
-        costRate,
-        grossProfit,
+        p.additionalAmount ?? 0,
+        getTotalAmount(p),
+
+        p.materialCost ?? 0,
+        p.laborCost ?? 0,
+        p.expenseCost ?? 0,
+        p.outsourceCost ?? 0,
+        getExecutionBudget(p),
+
+        costRate !== null ? costRate.toFixed(4) : "",
+        getGrossProfit(p),
+
         formatDate(p.startDate),
         formatDate(p.endDate),
         p.status,
@@ -312,9 +429,6 @@ export default function Home() {
 
     URL.revokeObjectURL(url);
   };
-
-  // 絞り込み配列
-
 
   return (   
     <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
@@ -408,6 +522,28 @@ export default function Home() {
 
             {selectedMenu.id === "projects" && (
               <div className="mt-4 flex gap-3">
+                <select
+                  value={selectedFiscalYearId}
+                  onChange={(e) => setSelectedFiscalYearId(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                >
+                  <option value="all">全年度</option>
+
+                  {fiscalYears.map((fiscalYear) => (
+                    <option key={fiscalYear.id} value={fiscalYear.id}>
+                      {fiscalYear.year}年度
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="w-fit rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800"
+                >
+                  フィルター
+                  {activeFilterCount > 0 && `（${activeFilterCount}）`}
+                </button>
+
                 <button
                   onClick={() => setIsNewProjectModalOpen(true)}
                   className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
@@ -446,6 +582,7 @@ export default function Home() {
                   onMasterUpdated={async () => {
                     await fetchMasters();
                     await fetchProjects();
+                    await fetchFiscalYears();
                   }}
                 />
               ) : (
@@ -479,6 +616,15 @@ export default function Home() {
           isDeleting={isDeleting}
           onClose={() => setDeletingProject(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+
+      {isFilterModalOpen && (
+        <FilterModal
+          filters={filters}
+          filterOptions={filterOptions}
+          onClose={() => setIsFilterModalOpen(false)}
+          onApply={(newFilters) => setFilters(newFilters)}
         />
       )}
       

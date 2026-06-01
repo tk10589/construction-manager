@@ -81,7 +81,7 @@ export default function ProjectsTable({
             <th className="sticky top-0 left-[120px] z-50 w-[90px] min-w-[90px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
-            <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-gray-100 px-4 py-3 font-bold">
+            <th className="lg:sticky lg:top-0 lg:left-[210px] lg:z-50 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-gray-100 px-4 py-3 font-bold">
               案件名
               </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
@@ -159,7 +159,7 @@ export default function ProjectsTable({
               </td>
               {/* 案件名 */}
               <td
-                className="lg:sticky lg:left-[220px] lg:z-30 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline whitespace-normal break-words"
+                className="lg:sticky lg:left-[210px] lg:z-30 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-white px-4 py-3 font-semibold text-blue-600 cursor-pointer hover:underline whitespace-normal break-words"
                 onClick={() => setSelectedProject(project)}
               >
                 {project.name}
