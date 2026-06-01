@@ -253,6 +253,41 @@ export default function FilterModal({
               selectedValues={localFilters.types}
               onToggle={(value) => toggleValue("types", value)}
             />
+
+            <FilterSelectSection
+              title="発注者"
+              options={filterOptions.clients}
+              selectedValues={localFilters.clients}
+              onToggle={(value) => toggleValue("clients", value)}
+            />
+
+            <FilterSelectSection
+              title="発注者担当"
+              options={filterOptions.clientStaffs}
+              selectedValues={localFilters.clientStaffs}
+              onToggle={(value) => toggleValue("clientStaffs", value)}
+            />
+
+            <FilterSelectSection
+              title="営業担当"
+              options={filterOptions.salesStaffs}
+              selectedValues={localFilters.salesStaffs}
+              onToggle={(value) => toggleValue("salesStaffs", value)}
+            />
+
+            <FilterSelectSection
+              title="担当者"
+              options={filterOptions.managers}
+              selectedValues={localFilters.managers}
+              onToggle={(value) => toggleValue("managers", value)}
+            />
+
+            <FilterSelectSection
+              title="外注依頼先"
+              options={filterOptions.outsourceCompanies}
+              selectedValues={localFilters.outsourceCompanies}
+              onToggle={(value) => toggleValue("outsourceCompanies", value)}
+            />
           </div>
         </div>
 
