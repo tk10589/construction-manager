@@ -1,6 +1,6 @@
 "use client";
 
-import { MasterItem, ProjectType } from "@/types/project";
+import { MasterItem, ProjectType, FiscalYear } from "@/types/project";
 import {
   MasterAction,
   MasterTarget,
@@ -18,6 +18,7 @@ type MasterModalProps = {
   projectTypes: ProjectType[];
   onClose: () => void;
   onMasterUpdated: () => void | Promise<void>;
+  fiscalYears: FiscalYear[];
 };
 
 export default function MasterModal({
@@ -26,6 +27,7 @@ export default function MasterModal({
   clients,
   staffs,
   projectTypes,
+  fiscalYears,
   onClose,
   onMasterUpdated,
 }: MasterModalProps) {
@@ -33,6 +35,7 @@ export default function MasterModal({
     type: "種別",
     client: "発注者",
     staff: "担当者",
+    fiscalYear: "年度",
   };
 
   const actionMap = {
@@ -47,14 +50,18 @@ export default function MasterModal({
       ? projectTypes
       : target === "client"
       ? clients
-      : staffs;
+      : target === "staff"
+      ? staffs
+      : fiscalYears;
 
   const baseUrl =
     target === "type"
       ? "/api/project-types"
       : target === "client"
       ? "/api/clients"
-      : "/api/staffs";
+      : target === "staff"
+      ? "/api/staffs"
+      : "/api/fiscal-years";
 
   return (
     <div

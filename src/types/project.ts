@@ -50,3 +50,11 @@ export type FormErrors = {
   manager?: string;
   amount?: string;
 };
+
+export type FiscalYear = {
+  id: number;
+  year: number;
+  endMonth: number;
+  startDate: string;
+  endDate: string;
+};

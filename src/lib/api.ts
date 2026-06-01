@@ -1,4 +1,5 @@
 import { Project } from "@/types/project";
+import { FiscalYear } from "@/types/project";
 
 export const fetchProjectsApi = async (
   keyword: string
@@ -94,4 +95,14 @@ export const deleteProjectApi = async (
   if (!res.ok) {
     throw new Error("案件の削除に失敗しました");
   }
+};
+
+export const fetchFiscalYearsApi = async (): Promise<FiscalYear[]> => {
+  const res = await fetch("/api/fiscal-years");
+
+  if (!res.ok) {
+    throw new Error("年度一覧の取得に失敗しました");
+  }
+
+  return res.json();
 };

@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   MasterDataItem,
   isProjectType,
+  isFiscalYear,
 } from "./masterTypes";
 import { getErrorMessage } from "./masterUtils";
 
@@ -61,6 +62,10 @@ export default function MasterDeleteView({
                 {isProjectType(item) ? (
                   <>
                     <b>{item.code}</b>：{item.name}
+                  </>
+                ) : isFiscalYear(item) ? (
+                  <>
+                    <b>{item.year}年度</b>：年度末 {item.endMonth}月
                   </>
                 ) : (
                   item.name

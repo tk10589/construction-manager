@@ -66,7 +66,7 @@ export default function ProjectsTable({
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th
-              className="sticky top-0 left-0 z-50 w-[120px] min-w-[120px] bg-gray-100 px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
+              className="sticky top-0 left-0 z-50 w-[130px] min-w-[130px] bg-gray-100 px-4 py-3 font-bold text-left cursor-pointer hover:bg-gray-200"
               onClick={() => {
                 if (sortKey === "code") {
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -78,22 +78,22 @@ export default function ProjectsTable({
             >
               案件番号 {sortKey === "code" && (sortOrder === "asc" ? "↑" : "↓")}
             </th>
-            <th className="sticky top-0 left-[120px] z-50 w-[100px] min-w-[100px] bg-gray-100 px-4 py-3 font-bold">
+            <th className="sticky top-0 left-[120px] z-50 w-[90px] min-w-[90px] bg-gray-100 px-4 py-3 font-bold">
               種別
               </th>
             <th className="lg:sticky lg:top-0 lg:left-[220px] lg:z-50 w-[clamp(230px,13vw,290px)] min-w-[clamp(230px,13vw,290px)] bg-gray-100 px-4 py-3 font-bold">
               案件名
               </th>
             <th className="sticky top-0 z-40 px-4 py-3 font-bold">受注日</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">発注者</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+            <th className="sticky w-[200px] min-w-[200px] top-0 z-40 px-4 py-3 font-bold">発注者</th>
+            <th className="sticky w-[140px] min-w-[140px] top-0 z-40 px-4 py-3 font-bold">
               発注者担当
             </th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+            <th className="sticky w-[140px] min-w-[140px] top-0 z-40 px-4 py-3 font-bold">
               営業担当
             </th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">担当者</th>
-            <th className="sticky top-0 z-40 px-4 py-3 font-bold">
+            <th className="sticky w-[140px] min-w-[140px] top-0 z-40 px-4 py-3 font-bold">担当者</th>
+            <th className="sticky w-[200px] min-w-[200px] top-0 z-40 px-4 py-3 font-bold">
               外注依頼先
             </th>
             <th
@@ -144,11 +144,11 @@ export default function ProjectsTable({
           {projects.map((project) => (
             <tr key={project.id} className="border-t border-gray-200">
               {/* 案件番号 */}
-              <td className="sticky left-0 z-30 w-[120px] min-w-[120px] bg-white px-4 py-3 font-semibold text-gray-900">
+              <td className="sticky left-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 font-semibold text-gray-900">
                 {project.code}
               </td>
               {/* 種別 */}
-              <td className="sticky left-[120px] z-30 w-[100px] min-w-[100px] bg-white px-4 py-3">
+              <td className="sticky left-[120px] z-30 w-[90px] min-w-[90px] bg-white px-4 py-3">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(
                     project.type
@@ -171,17 +171,17 @@ export default function ProjectsTable({
                   : "-"}
               </td>
               {/* 発注者 */}
-              <td className="px-4 py-3 text-gray-800">{project.client}</td>
+              <td className="sticky w-[200px] min-w-[200px] px-4 py-3 text-gray-800">{project.client}</td>
               {/* 発注者担当者 */}
-              <td className="px-4 py-3 text-gray-800">
+              <td className="w-[140px] min-w-[140px] px-4 py-3 text-gray-800">
                 {project.clientStaff || "-"}
               </td>
               {/* 営業担当 */}
-              <td className="px-4 py-3 text-gray-800">
+              <td className="w-[140px] min-w-[140px] px-4 py-3 text-gray-800">
                 {project.salesStaff || "-"}
               </td>
               {/* 現場担当 */}
-              <td className="px-4 py-3 text-gray-800">{project.manager}</td>
+              <td className="sticky w-[200px] min-w-[200px] px-4 py-3 text-gray-800">{project.manager}</td>
               {/* 外注依頼先 */}
               <td className="px-4 py-3 text-gray-800">
                 {project.outsourceCompany || "-"}

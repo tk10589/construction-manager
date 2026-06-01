@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MasterItem, ProjectType } from "@/types/project";
+import { MasterItem, ProjectType, FiscalYear } from "@/types/project";
 import MasterRow from "./MasterRow";
 import MasterModal from "./MasterModal";
 
@@ -30,8 +30,10 @@ export default function SettingsPage({
   const [editingTypeCode, setEditingTypeCode] = useState("");
   const [editingTypeName, setEditingTypeName] = useState("");
 
+  const [fiscalYears, setFiscalYears] = useState<FiscalYear[]>([]);
+
   const [masterModal, setMasterModal] = useState<{
-    target: "type" | "client" | "staff";
+    target: "type" | "client" | "staff" | "fiscalYear";
     action: "add" | "edit" | "delete" | "list";
   } | null>(null);
 
@@ -136,6 +138,14 @@ export default function SettingsPage({
     const data = await response.json();
 
     setStaffs(data);
+  };
+
+  // 年度取得関数
+  const fetchFiscalYears = async () => {
+    const response = await fetch("/api/fiscal-years");
+    const data = await response.json();
+
+    setFiscalYears(data);
   };
 
   // 発注者追加関数
@@ -243,6 +253,7 @@ export default function SettingsPage({
     setEditingClientId(null);
     setEditingClientName("");
     await fetchClients();
+    await fetchFiscalYears();
     onMasterUpdated();
   };
 
@@ -263,13 +274,15 @@ export default function SettingsPage({
     setEditingStaffId(null);
     setEditingStaffName("");
     await fetchStaffs();
+    await fetchFiscalYears();
     onMasterUpdated();
   };
 
   useEffect(() => {
+    fetchProjectTypes();
     fetchClients();
     fetchStaffs();
-    fetchProjectTypes();
+    fetchFiscalYears();
   }, []);
 
   return (
@@ -359,6 +372,34 @@ export default function SettingsPage({
             })
           }
         />
+
+        <MasterRow
+          title="年度管理"
+          onAdd={() =>
+            setMasterModal({
+              target: "fiscalYear",
+              action: "add",
+            })
+          }
+          onEdit={() =>
+            setMasterModal({
+              target: "fiscalYear",
+              action: "edit",
+            })
+          }
+          onDelete={() =>
+            setMasterModal({
+              target: "fiscalYear",
+              action: "delete",
+            })
+          }
+          onList={() =>
+            setMasterModal({
+              target: "fiscalYear",
+              action: "list",
+            })
+          }
+        />
       </div>
     
       {masterModal && (
@@ -368,11 +409,13 @@ export default function SettingsPage({
           clients={clients}
           staffs={staffs}
           projectTypes={projectTypes}
+          fiscalYears={fiscalYears}
           onClose={() => setMasterModal(null)}
           onMasterUpdated={async () => {
             await fetchClients();
             await fetchStaffs();
             await fetchProjectTypes();
+            await fetchFiscalYears();
             onMasterUpdated();
           }}
         />

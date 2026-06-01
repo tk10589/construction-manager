@@ -73,3 +73,13 @@ model ProjectType {
   name      String
   createdAt DateTime @default(now())
 }
+
+model FiscalYear {
+  id        Int      @id @default(autoincrement())
+  year      Int      @unique
+  endMonth  Int
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

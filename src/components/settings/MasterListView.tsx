@@ -1,4 +1,11 @@
-import { MasterDataItem, isProjectType } from "./masterTypes";
+import {
+  MasterDataItem,
+  isProjectType,
+  isFiscalYear,
+} from "./masterTypes";
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("ja-JP");
 
 export default function MasterListView({
   items,
@@ -16,6 +23,12 @@ export default function MasterListView({
             {isProjectType(item) ? (
               <span>
                 <b>{item.code}</b>：{item.name}
+              </span>
+            ) : isFiscalYear(item) ? (
+              <span>
+                <b>{item.year}年度</b>：
+                {formatDate(item.startDate)} ～ {formatDate(item.endDate)}
+                （年度末 {item.endMonth}月）
               </span>
             ) : (
               <span>{item.name}</span>
