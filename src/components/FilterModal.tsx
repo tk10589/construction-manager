@@ -27,6 +27,117 @@ type FilterModalProps = {
   onApply: (filters: ProjectFilters) => void;
 };
 
+type FilterSelectSectionProps = {
+  title: string;
+  options: string[];
+  selectedValues: string[];
+  onToggle: (value: string) => void;
+};
+
+
+
+function FilterSelectSection({
+  title,
+  options,
+  selectedValues,
+  onToggle,
+}: FilterSelectSectionProps) {
+  const [keyword, setKeyword] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (
+        sectionRef.current &&
+        !sectionRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const filteredOptions = options.filter((option) =>
+    option.toLowerCase().includes(keyword.toLowerCase())
+  );
+
+  return (
+    <div
+      ref={sectionRef}
+      className="relative space-y-2 rounded-lg border border-gray-200 p-4"
+    >
+      <h3 className="font-bold text-gray-900">{title}</h3>
+
+      <input
+        value={keyword}
+        onChange={(e) => {
+          setKeyword(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={`${title}を検索`}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+      />
+
+      {isOpen && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          className="absolute left-4 right-4 z-30 max-h-40 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg"
+        >
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option) => (
+              <label
+                key={option}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="flex cursor-pointer items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 hover:bg-gray-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedValues.includes(option)}
+                  onChange={() => {
+                    onToggle(option);
+                    setIsOpen(true);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                />
+
+                <span>{option}</span>
+              </label>
+            ))
+          ) : (
+            <p className="px-3 py-2 text-sm text-gray-500">
+              該当する項目がありません
+            </p>
+          )}
+        </div>
+      )}
+
+      {selectedValues.length > 0 && (
+        <p className="text-xs text-gray-500">
+          選択中：{selectedValues.join("、")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function FilterModal({
   filters,
   filterOptions,
@@ -36,38 +147,49 @@ export default function FilterModal({
   const [localFilters, setLocalFilters] =
     useState<ProjectFilters>(filters);
 
-  const [typeKeyword, setTypeKeyword] = useState("");
-  const [showTypeList, setShowTypeList] = useState(false);
-  const typeFilterRef = useRef<HTMLDivElement>(null);
+  <div className="space-y-4">
+    <FilterSelectSection
+      title="種別"
+      options={filterOptions.types}
+      selectedValues={localFilters.types}
+      onToggle={(value) => toggleValue("types", value)}
+    />
 
-  // useEffect関係
-  useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    const target = event.target as Node;
+    <FilterSelectSection
+      title="発注者"
+      options={filterOptions.clients}
+      selectedValues={localFilters.clients}
+      onToggle={(value) => toggleValue("clients", value)}
+    />
 
-    if (
-      typeFilterRef.current &&
-      !typeFilterRef.current.contains(target)
-    ) {
-      setShowTypeList(false);
-    }
-  };
+    <FilterSelectSection
+      title="発注者担当"
+      options={filterOptions.clientStaffs}
+      selectedValues={localFilters.clientStaffs}
+      onToggle={(value) => toggleValue("clientStaffs", value)}
+    />
 
-  // 補助関数
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      setShowTypeList(false);
-    }
-  };
+    <FilterSelectSection
+      title="営業担当"
+      options={filterOptions.salesStaffs}
+      selectedValues={localFilters.salesStaffs}
+      onToggle={(value) => toggleValue("salesStaffs", value)}
+    />
 
-  document.addEventListener("mousedown", handleClickOutside);
-  document.addEventListener("keydown", handleKeyDown);
+    <FilterSelectSection
+      title="担当者"
+      options={filterOptions.managers}
+      selectedValues={localFilters.managers}
+      onToggle={(value) => toggleValue("managers", value)}
+    />
 
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-    document.removeEventListener("keydown", handleKeyDown);
-  };
-}, []);
+    <FilterSelectSection
+      title="外注依頼先"
+      options={filterOptions.outsourceCompanies}
+      selectedValues={localFilters.outsourceCompanies}
+      onToggle={(value) => toggleValue("outsourceCompanies", value)}
+    />
+  </div>
 
   const selectedCount =
     localFilters.types.length +
@@ -94,10 +216,6 @@ export default function FilterModal({
   };
 
   // フィルター関係
-  const filteredTypes = filterOptions.types.filter((type) =>
-    type.toLowerCase().includes(typeKeyword.toLowerCase())
-  );
-
   const clearFilters = () => {
     setLocalFilters({
       types: [],
@@ -127,52 +245,15 @@ export default function FilterModal({
           </p>
         </div>
 
-        <div
-          ref={typeFilterRef}
-          className="relative space-y-2 rounded-lg border border-gray-200 p-4"
-        >
-          <h3 className="font-bold text-gray-900">種別</h3>
-
-          <input
-            value={typeKeyword}
-            onChange={(e) => {
-              setTypeKeyword(e.target.value);
-              setShowTypeList(true);
-            }}
-            onFocus={() => setShowTypeList(true)}
-            placeholder="種別を検索"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          />
-
-          {showTypeList && (
-            <div className="absolute left-4 right-4 z-30 max-h-40 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-              {filteredTypes.length > 0 ? (
-                filteredTypes.map((type) => (
-                  <label
-                    key={type}
-                    className="flex cursor-pointer items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={localFilters.types.includes(type)}
-                      onChange={() => toggleValue("types", type)}
-                    />
-                    <span>{type}</span>
-                  </label>
-                ))
-              ) : (
-                <p className="px-3 py-2 text-sm text-gray-500">
-                  該当する種別がありません
-                </p>
-              )}
-            </div>
-          )}
-
-          {localFilters.types.length > 0 && (
-            <p className="text-xs text-gray-500">
-              選択中：{localFilters.types.join("、")}
-            </p>
-          )}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          <div className="space-y-4">
+            <FilterSelectSection
+              title="種別"
+              options={filterOptions.types}
+              selectedValues={localFilters.types}
+              onToggle={(value) => toggleValue("types", value)}
+            />
+          </div>
         </div>
 
         <div className="shrink-0 border-t border-gray-200 px-6 py-4">
