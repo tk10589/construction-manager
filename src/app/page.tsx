@@ -328,6 +328,33 @@ export default function Home() {
     return 0;
   });
 
+  // 集計値処理
+  const summary = sortedProjects.reduce(
+    (acc, project) => {
+      const totalAmount = getTotalAmount(project);
+      const executionBudget = getExecutionBudget(project);
+      const grossProfit = getGrossProfit(project);
+
+      acc.projectCount += 1;
+      acc.totalAmount += totalAmount;
+      acc.executionBudget += executionBudget;
+      acc.grossProfit += grossProfit;
+
+      return acc;
+    },
+    {
+      projectCount: 0,
+      totalAmount: 0,
+      executionBudget: 0,
+      grossProfit: 0,
+    }
+  );
+
+  const averageCostRate =
+    summary.totalAmount > 0
+      ? summary.executionBudget / summary.totalAmount
+      : null;
+
   
   // ｃｓｖ出力処理
   const exportCSV = () => {
@@ -521,43 +548,86 @@ export default function Home() {
             </p>
 
             {selectedMenu.id === "projects" && (
-              <div className="mt-4 flex gap-3">
-                <select
-                  value={selectedFiscalYearId}
-                  onChange={(e) => setSelectedFiscalYearId(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                >
-                  <option value="all">全年度</option>
+              <>
+                <div className="mt-4 flex gap-3">
+                  <select
+                    value={selectedFiscalYearId}
+                    onChange={(e) => setSelectedFiscalYearId(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                  >
+                    <option value="all">全年度</option>
 
-                  {fiscalYears.map((fiscalYear) => (
-                    <option key={fiscalYear.id} value={fiscalYear.id}>
-                      {fiscalYear.year}年度
-                    </option>
-                  ))}
-                </select>
+                    {fiscalYears.map((fiscalYear) => (
+                      <option key={fiscalYear.id} value={fiscalYear.id}>
+                        {fiscalYear.year}年度
+                      </option>
+                    ))}
+                  </select>
 
-                <button
-                  onClick={() => setIsFilterModalOpen(true)}
-                  className="w-fit rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800"
-                >
-                  フィルター
-                  {activeFilterCount > 0 && `（${activeFilterCount}）`}
-                </button>
+                  <button
+                    onClick={() => setIsFilterModalOpen(true)}
+                    className="w-fit rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800"
+                  >
+                    フィルター
+                    {activeFilterCount > 0 && `（${activeFilterCount}）`}
+                  </button>
 
-                <button
-                  onClick={() => setIsNewProjectModalOpen(true)}
-                  className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                >
-                  ＋ 新規案件登録
-                </button>
+                  <button
+                    onClick={() => setIsNewProjectModalOpen(true)}
+                    className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    ＋ 新規案件登録
+                  </button>
 
-                <button
-                  onClick={exportCSV}
-                  className="w-fit rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
-                >
-                  CSV出力
-                </button>
-              </div>
+                  <button
+                    onClick={exportCSV}
+                    className="w-fit rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
+                  >
+                    CSV出力
+                  </button>
+                </div>
+
+                <div className="mt-4 mb-4 overflow-x-auto">
+                  <div className="flex justify-end gap-3">
+                    <div className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs text-gray-500">表示案件数</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        {summary.projectCount}件
+                      </p>
+                    </div>
+
+                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs text-gray-500">売上合計</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        ¥{summary.totalAmount.toLocaleString("ja-JP")}
+                      </p>
+                    </div>
+
+                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs text-gray-500">実行予算合計</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        ¥{summary.executionBudget.toLocaleString("ja-JP")}
+                      </p>
+                    </div>
+
+                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs text-gray-500">粗利合計</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        ¥{summary.grossProfit.toLocaleString("ja-JP")}
+                      </p>
+                    </div>
+
+                    <div className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs text-gray-500">平均原価率</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        {averageCostRate !== null
+                          ? `${(averageCostRate * 100).toFixed(1)}%`
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="mt-6 min-h-0 flex-1 overflow-hidden">
