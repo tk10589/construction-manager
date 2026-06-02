@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Project, FiscalYear } from "@/types/project";
 import ProjectsTable from "@/components/ProjectsTable";
 import NewProjectForm from "@/components/NewProjectForm";
 import EditModal from "@/components/EditModal";
@@ -15,16 +14,25 @@ import {
   fetchClientsApi,
   fetchStaffsApi,
   fetchProjectTypesApi,
+  fetchFiscalYearsApi,
   createProjectApi,
   updateProjectApi,
   deleteProjectApi,
 } from "@/lib/api";
+
 import {
   getTotalAmount,
   getExecutionBudget,
   getGrossProfit,
   getCostRate,
 } from "@/lib/projectCalculations";
+
+import {
+  Project,
+  FiscalYear,
+  MasterItem,
+  ProjectType,
+} from "@/types/project";
 
 type ProjectFilters = {
   types: string[];
@@ -42,22 +50,18 @@ const menuItems = [
   { id: "settings", title: "設定", description: "マスタ管理を行います" },
 ];
 
-
-
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(menuItems[0]);
   const [projects, setProjects] = useState<Project[]>([]);
 
-  const [projectTypes, setProjectTypes] = useState<any[]>([]);
+  const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [codeSort, setCodeSort] = useState<"asc" | "desc">("asc");
-  const [amountSort, setAmountSort] = useState<"none" | "desc" | "asc">("none");
+
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [keyword, setKeyword] = useState("");
-  const [typeFilter, setTypeFilter] = useState("ALL");  //  今後削除予定
+
   const [sortKey, setSortKey] = useState<"code" | "amount">("code");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -65,8 +69,8 @@ export default function Home() {
   
   const [toast, setToast] = useState<string | null>(null);
   
-  const [clients, setClients] = useState<any[]>([]);
-  const [staffs, setStaffs] = useState<any[]>([]);
+  const [clients, setClients] = useState<MasterItem[]>([]);
+  const [staffs, setStaffs] = useState<MasterItem[]>([]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -87,7 +91,7 @@ export default function Home() {
   // fetch関係
   const fetchProjects = async () => {
     try {
-      const data = await fetchProjectsApi(keyword);
+      const data = await fetchProjectsApi("");
       setProjects(data);
     } catch (error) {
       alert(
@@ -114,10 +118,16 @@ export default function Home() {
 
    // 年度取得関数
   const fetchFiscalYears = async () => {
-    const res = await fetch("/api/fiscal-years");
-    const data = await res.json();
-
-    setFiscalYears(data);
+    try {
+      const data = await fetchFiscalYearsApi();
+      setFiscalYears(data);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "年度一覧の取得に失敗しました"
+      );
+    }
   };
 
   // 案件登録関係
@@ -185,37 +195,12 @@ export default function Home() {
   };    
 
   // useEffect関係
-  useEffect(() => {
-    fetchProjects();
-  }, [keyword]);
-
     // 初期読み込み
   useEffect(() => {
-    fetchMasters();
-    fetchFiscalYears();
-  }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("keyword");
-    if (saved) {
-      setKeyword(saved);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("keyword", keyword);
-  }, [keyword]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("typeFilter");
-    if (saved) {
-      setTypeFilter(saved);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("typeFilter", typeFilter);
-  }, [typeFilter]);
+  fetchProjects();
+  fetchMasters();
+  fetchFiscalYears();
+}, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -261,15 +246,8 @@ export default function Home() {
     managers: getUniqueValues(projects, "manager"),
     outsourceCompanies: getUniqueValues(projects, "outsourceCompany"),
   };
-
   
   // フィルター処理
-    // フィルター用元データ取得 typeFilteredProjects削除予定
-  const typeFilteredProjects = projects.filter((p) => {
-    if (typeFilter === "ALL") return true;
-    return p.type === typeFilter;
-  });
-
     // 年度フィルター処理（絞り込み）
   const selectedFiscalYear =
     selectedFiscalYearId === "all"
@@ -279,7 +257,7 @@ export default function Home() {
         );
 
     // 年度末フィルター処理（絞り込み）
-  const fiscalFilteredProjects = typeFilteredProjects.filter((project) => {
+  const fiscalFilteredProjects = projects.filter((project) => {
     if (!selectedFiscalYear) return true;
     if (!project.endDate) return false;
 
@@ -484,33 +462,6 @@ export default function Home() {
           </div>
           
           <nav className="mt-8 space-y-2">
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="案件番号検索（例：F-2026）"
-              className="border px-3 py-2 rounded"
-            />
-
-            <div className="mb-4">
-              <p className="mb-1 text-xs text-gray-100">
-                種別フィルター
-              </p>
-
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="rounded-lg border px-3 py-2 text-gray-300"
-              >
-                <option value="ALL">全て</option>
-
-                {projectTypes.map((type) => (
-                  <option key={type.id} value={type.code}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {menuItems.map((item) => (
               <button
                 key={item.id}
@@ -535,140 +486,143 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="min-w-0 flex-1 overflow-hidden p-4 md:p-8">
-          <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
-            <p className="text-sm font-bold text-blue-700">Dashboard</p>
+        <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden p-4 md:p-8">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-sm font-bold text-gray-900">
+                Dashboard
+              </h1>
 
-            <h2 className="mt-2 text-3xl font-bold text-gray-900">
-              {selectedMenu.title}
-            </h2>
+              <p className="text-2xl text-gray-900 font-bold">
+                {selectedMenu.title}
+              </p>
 
-            <p className="mt-4 text-base text-gray-700">
-              {selectedMenu.description}
-            </p>
+              <p className="mt-4 text-base text-gray-700">
+                {selectedMenu.description}
+              </p>
+            </div>
 
             {selectedMenu.id === "projects" && (
-              <>
-                <div className="mt-4 flex gap-3">
-                  <select
-                    value={selectedFiscalYearId}
-                    onChange={(e) => setSelectedFiscalYearId(e.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                  >
-                    <option value="all">全年度</option>
+              <div className="flex flex-wrap justify-end gap-2">
+                <select
+                  value={selectedFiscalYearId}
+                  onChange={(e) => setSelectedFiscalYearId(e.target.value)}
+                  className="h-8 rounded-lg border border-gray-300 px-3 text-sm text-gray-900"
+                >
+                  <option value="all">全年度</option>
 
-                    {fiscalYears.map((fiscalYear) => (
-                      <option key={fiscalYear.id} value={fiscalYear.id}>
-                        {fiscalYear.year}年度
-                      </option>
-                    ))}
-                  </select>
+                  {fiscalYears.map((fiscalYear) => (
+                    <option key={fiscalYear.id} value={fiscalYear.id}>
+                      {fiscalYear.year}年度
+                    </option>
+                  ))}
+                </select>
 
-                  <button
-                    onClick={() => setIsFilterModalOpen(true)}
-                    className="w-fit rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800"
-                  >
-                    フィルター
-                    {activeFilterCount > 0 && `（${activeFilterCount}）`}
-                  </button>
+                <button
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="h-8 w-fit shrink-0 rounded-lg bg-gray-700 px-3 text-sm font-bold text-white hover:bg-gray-800"
+                >
+                  フィルター
+                  {activeFilterCount > 0 && `（${activeFilterCount}）`}
+                </button>
 
-                  <button
-                    onClick={() => setIsNewProjectModalOpen(true)}
-                    className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                  >
-                    ＋ 新規案件登録
-                  </button>
+                <button
+                  onClick={() => setIsNewProjectModalOpen(true)}
+                  className="h-8 w-fit shrink-0 rounded-lg bg-blue-600 px-3 text-sm font-bold text-white hover:bg-blue-700"
+                >
+                  ＋ 新規案件
+                </button>
 
-                  <button
-                    onClick={exportCSV}
-                    className="w-fit rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
-                  >
-                    CSV出力
-                  </button>
-                </div>
-
-                <div className="mt-4 mb-4 overflow-x-auto">
-                  <div className="flex justify-end gap-3">
-                    <div className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs text-gray-500">表示案件数</p>
-                      <p className="mt-1 text-lg font-bold text-gray-900">
-                        {summary.projectCount}件
-                      </p>
-                    </div>
-
-                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs text-gray-500">売上合計</p>
-                      <p className="mt-1 text-lg font-bold text-gray-900">
-                        ¥{summary.totalAmount.toLocaleString("ja-JP")}
-                      </p>
-                    </div>
-
-                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs text-gray-500">実行予算合計</p>
-                      <p className="mt-1 text-lg font-bold text-gray-900">
-                        ¥{summary.executionBudget.toLocaleString("ja-JP")}
-                      </p>
-                    </div>
-
-                    <div className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs text-gray-500">粗利合計</p>
-                      <p className="mt-1 text-lg font-bold text-gray-900">
-                        ¥{summary.grossProfit.toLocaleString("ja-JP")}
-                      </p>
-                    </div>
-
-                    <div className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs text-gray-500">平均原価率</p>
-                      <p className="mt-1 text-lg font-bold text-gray-900">
-                        {averageCostRate !== null
-                          ? `${(averageCostRate * 100).toFixed(1)}%`
-                          : "-"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </>
+                <button
+                  onClick={exportCSV}
+                  className="h-8 w-fit shrink-0 rounded-lg bg-green-600 px-3 text-sm font-bold text-white hover:bg-green-700"
+                >
+                  CSV出力
+                </button>
+              </div>
             )}
+          </div>
 
-            <div className="mt-6 min-h-0 flex-1 overflow-hidden">
-              {selectedMenu.id === "projects" ? (
-                loading ? (
-                  <p className="text-gray-700">読み込み中...</p>
-                ) : (
-                  <ProjectsTable
-                    projects={sortedProjects}
-                    sortKey={sortKey}
-                    setSortKey={setSortKey}
-                    sortOrder={sortOrder}
-                    setSortOrder={setSortOrder}
-                    setDeletingProject={setDeletingProject}
-                    onEdit={editProject}
-                    setSelectedProject={setSelectedProject}
-                  />
-                )
+          {selectedMenu.id === "projects" && (
+            <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-5">
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">表示案件数</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">
+                  {summary.projectCount}件
+                </p>
+              </div>
 
-              ) : selectedMenu.id === "settings" ? (
-                <SettingsPage
-                  onMasterUpdated={async () => {
-                    await fetchMasters();
-                    await fetchProjects();
-                    await fetchFiscalYears();
-                  }}
-                />
-              ) : (
-                <div className="rounded-lg border border-gray-300 p-6">
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {selectedMenu.title}の内容
-                  </h3>
-                  <p className="mt-2 text-sm text-gray-700">
-                    ここに「{selectedMenu.title}」に関する情報を表示します。
-                  </p>
-                </div>
-              )}
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">売上合計</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">
+                  ¥{summary.totalAmount.toLocaleString("ja-JP")}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">実行予算合計</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">
+                  ¥{summary.executionBudget.toLocaleString("ja-JP")}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">粗利合計</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">
+                  ¥{summary.grossProfit.toLocaleString("ja-JP")}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                <p className="text-xs font-semibold text-gray-500">平均原価率</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">
+                  {averageCostRate !== null
+                    ? `${(averageCostRate * 100).toFixed(1)}%`
+                    : "-"}
+                </p>
+              </div>
             </div>
+          )}
+
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {selectedMenu.id === "projects" ? (
+              loading ? (
+                <p className="text-gray-700">読み込み中...</p>
+              ) : (
+                <ProjectsTable
+                  projects={sortedProjects}
+                  sortKey={sortKey}
+                  setSortKey={setSortKey}
+                  sortOrder={sortOrder}
+                  setSortOrder={setSortOrder}
+                  setDeletingProject={setDeletingProject}
+                  onEdit={editProject}
+                  setSelectedProject={setSelectedProject}
+                />
+              )
+
+            ) : selectedMenu.id === "settings" ? (
+              <SettingsPage
+                onMasterUpdated={async () => {
+                  await fetchMasters();
+                  await fetchProjects();
+                  await fetchFiscalYears();
+                }}
+              />
+            ) : (
+              <div className="rounded-lg border border-gray-300 p-6">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {selectedMenu.title}の内容
+                </h3>
+                <p className="mt-2 text-sm text-gray-700">
+                  ここに「{selectedMenu.title}」に関する情報を表示します。
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </div>
+
       {editingProject && (
         <EditModal
           project={editingProject}
@@ -760,6 +714,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-

@@ -1,5 +1,7 @@
-import { Project } from "@/types/project";
-import { FiscalYear } from "@/types/project";
+import {
+  Project,
+  FiscalYear,
+} from "@/types/project";
 
 export const fetchProjectsApi = async (
   keyword: string

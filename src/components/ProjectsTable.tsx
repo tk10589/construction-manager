@@ -61,7 +61,7 @@ export default function ProjectsTable({
   };
 
   return (
-    <div className="h-full min-h-[260px] overflow-auto overscroll-contain rounded-lg border border-gray-300">
+    <div className="h-full min-h-[260px] overflow-auto overscroll-contain rounded-lg border border-gray-300 bg-white">
       <table className="min-w-[2200px] lg:min-w-[2500px] table-fixed border-collapse bg-white text-xs lg:text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
@@ -142,7 +142,7 @@ export default function ProjectsTable({
 
         <tbody>
           {projects.map((project) => (
-            <tr key={project.id} className="border-t border-gray-200">
+            <tr key={project.id} className="border-t border-gray-200 border-b">
               {/* 案件番号 */}
               <td className="sticky left-0 z-30 w-[130px] min-w-[130px] bg-white px-4 py-3 font-semibold text-gray-900">
                 {project.code}
