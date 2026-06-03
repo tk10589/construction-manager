@@ -327,6 +327,44 @@ export default function Home() {
       grossProfit: 0,
     }
   );
+    // 進捗集計
+  const statusSummary = sortedProjects.reduce<Record<string, number>>(
+    (acc, project) => {
+      const status = project.status || "未設定";
+
+      acc[status] = (acc[status] || 0) + 1;
+
+      return acc;
+    },
+    {}
+  );
+    // 進捗表示順設定
+  const statusOrder = [
+    "未着手",
+    "施工中",
+    "完了",
+    "保留",
+    "中止",
+    "未設定",
+  ];
+
+    // 表示用データ作成
+  const otherStatuses = Object.keys(statusSummary).filter(
+    (status) => !statusOrder.includes(status)
+  );
+
+  const statusSummaryItems = [
+    ...statusOrder
+      .filter((status) => statusSummary[status])
+      .map((status) => ({
+        status,
+        count: statusSummary[status],
+      })),
+    ...otherStatuses.map((status) => ({
+      status,
+      count: statusSummary[status],
+    })),
+  ];
 
   const averageCostRate =
     summary.totalAmount > 0
@@ -539,6 +577,24 @@ export default function Home() {
                 >
                   CSV出力
                 </button>
+              </div>
+            )}
+
+            {selectedMenu.id === "projects" && statusSummaryItems.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {statusSummaryItems.map((item) => (
+                  <div
+                    key={item.status}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm"
+                  >
+                    <span className="font-semibold text-gray-600">
+                      {item.status}
+                    </span>
+                    <span className="ml-2 font-bold text-gray-900">
+                      {item.count}件
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>

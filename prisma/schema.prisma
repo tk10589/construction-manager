@@ -46,8 +46,34 @@ model Project {
   startDate DateTime?
   endDate   DateTime?
 
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt  
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  users     User[]
+  projects  Project[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  loginId      String   @unique
+  email        String   @unique
+  passwordHash String
+  name         String
+  companyId    Int
+  company      Company  @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Counter {

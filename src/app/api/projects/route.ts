@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { discoverValidationDepths } from "next/dist/server/app-render/instant-validation/instant-validation";
 
 export async function GET(request: Request) {
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+  // 会社別絞設定
   const { searchParams } = new URL(request.url);
   const keyword = searchParams.get("q") || "";
 
   const projects = await prisma.project.findMany({
     where: {
+      companyId: session.user.companyId,
       code: {
         contains: keyword,
       },
@@ -21,6 +32,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+
+    if (!session?.user?.companyId) {
+      return NextResponse.json(
+        { error: "ログインが必要です" },
+        { status: 401 }
+      );
+    }
+
   const body = await request.json();
 
   // ① 必須チェック
@@ -55,9 +75,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // ③ 重複チェック
-  const exists = await prisma.project.findUnique({
+  // ③ 重複チェック（会社別に絞る）
+  const exists = await prisma.project.findFirst({
     where: {
+      companyId: session.user.companyId,
       code: body.code,
     },
   });
@@ -72,6 +93,8 @@ export async function POST(request: Request) {
   // ④ 登録
   const project = await prisma.project.create({
     data: {
+      companyId: session.user.companyId,
+
       code: body.code,
       type: body.type,
 
