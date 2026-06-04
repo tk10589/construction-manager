@@ -1,20 +1,20 @@
-import { auth } from "./auth";
+import { auth } from "@/lib/auth";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isLoginPage = req.nextUrl.pathname.startsWith("/login");
+  const isLoginPage = req.nextUrl.pathname === "/login";
+  const isRegisterPage = req.nextUrl.pathname === "/register";
+  const isForgotPasswordPage = req.nextUrl.pathname === "/forgot-password";
 
-  if (!isLoggedIn && !isLoginPage) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    return Response.redirect(loginUrl);
+  if (!isLoggedIn && !isLoginPage && !isRegisterPage && !isForgotPasswordPage) {
+    return Response.redirect(new URL("/login", req.nextUrl));
   }
 
-  if (isLoggedIn && isLoginPage) {
-    const homeUrl = new URL("/", req.nextUrl.origin);
-    return Response.redirect(homeUrl);
+  if (isLoggedIn && (isLoginPage || isRegisterPage)) {
+    return Response.redirect(new URL("/", req.nextUrl));
   }
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
