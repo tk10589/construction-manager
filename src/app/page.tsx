@@ -43,6 +43,15 @@ type ProjectFilters = {
   outsourceCompanies: string[];
 };
 
+type LoginUser = {
+  id: string;
+  loginId: string;
+  name?: string | null;
+  email?: string | null;
+  companyId: number;
+  companyName: string;
+};
+
 const menuItems = [
   { id: "projects", title: "案件管理", description: "案件一覧、進捗、受注金額を確認します。" },
   { id: "materials", title: "材料管理", description: "使用材料、発注状況、在庫状況を管理します。" },
@@ -51,6 +60,8 @@ const menuItems = [
 ];
 
 export default function Home() {
+  const [loginUser, setLoginUser] = useState<LoginUser | null>(null);
+
   const [selectedMenu, setSelectedMenu] = useState(menuItems[0]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -114,6 +125,18 @@ export default function Home() {
     setClients(clientData);
     setStaffs(staffData);
     setProjectTypes(typeData);
+  };
+
+  const fetchLoginUser = async () => {
+    const response = await fetch("/api/auth/me");
+
+    if (!response.ok) {
+      setLoginUser(null);
+      return;
+    }
+
+    const data = await response.json();
+    setLoginUser(data);
   };
 
    // 年度取得関数
@@ -197,10 +220,11 @@ export default function Home() {
   // useEffect関係
     // 初期読み込み
   useEffect(() => {
-  fetchProjects();
-  fetchMasters();
-  fetchFiscalYears();
-}, []);
+    fetchLoginUser();
+    fetchProjects();
+    fetchMasters();
+    fetchFiscalYears();
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -540,12 +564,39 @@ export default function Home() {
               </p>
             </div>
 
+            {loginUser && (
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="font-bold text-gray-900">
+                    {loginUser.companyName}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    {loginUser.name || loginUser.loginId}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    signOut({
+                      callbackUrl: "/login",
+                    })
+                  }
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-200"
+                >
+                  ログアウト
+                </button>
+              </div>
+            )}
+          </div>
+            
+          <div className="mb-2">
             {selectedMenu.id === "projects" && (
               <div className="flex flex-wrap justify-end gap-2">
                 <select
                   value={selectedFiscalYearId}
                   onChange={(e) => setSelectedFiscalYearId(e.target.value)}
-                  className="h-8 rounded-lg border border-gray-300 px-3 text-sm text-gray-900"
+                  className="h-8 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 hover:bg-white"
                 >
                   <option value="all">全年度</option>
 
@@ -558,7 +609,7 @@ export default function Home() {
 
                 <button
                   onClick={() => setIsFilterModalOpen(true)}
-                  className="h-8 w-fit shrink-0 rounded-lg bg-gray-700 px-3 text-sm font-bold text-white hover:bg-gray-800"
+                  className="h-8 w-fit shrink-0 rounded-lg bg-gray-600 px-3 text-sm font-bold text-white hover:bg-gray-700"
                 >
                   フィルター
                   {activeFilterCount > 0 && `（${activeFilterCount}）`}
@@ -579,6 +630,7 @@ export default function Home() {
                 </button>
               </div>
             )}
+            
 
             {selectedMenu.id === "projects" && statusSummaryItems.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
