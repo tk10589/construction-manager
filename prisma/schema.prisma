@@ -60,8 +60,12 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  projects  Project[]
+  users        User[]
+  projects     Project[]
+  clients      Client[]
+  staffs       Staff[]
+  projectTypes ProjectType[]
+  fiscalYears  FiscalYear[]
 }
 
 model User {
@@ -85,12 +89,16 @@ model Client {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model Staff {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model ProjectType {
@@ -98,14 +106,22 @@ model ProjectType {
   code      String   @unique
   name      String
   createdAt DateTime @default(now())
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model FiscalYear {
   id        Int      @id @default(autoincrement())
-  year      Int      @unique
+  year      Int
   endMonth  Int
   startDate DateTime
   endDate   DateTime
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([companyId, year])
 }

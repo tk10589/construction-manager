@@ -54,16 +54,6 @@ export default function MasterAddView({
 
   return (
     <div className="space-y-4">
-      {target === "type" && (
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="種別コード"
-          className="w-full rounded border px-3 py-2"
-        />
-      )}
-
-      {/* 年度追加用 */}
       {target === "fiscalYear" ? (
         <>
           <div>
@@ -87,7 +77,7 @@ export default function MasterAddView({
               onChange={(e) => setEndMonth(e.target.value)}
               className="w-full rounded border px-3 py-2"
             >
-              {[1,2,3,4,5,6,7,8,9,10,11,12].map((month) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
                 <option key={month} value={month}>
                   {month}月
                 </option>

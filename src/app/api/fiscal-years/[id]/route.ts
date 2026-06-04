@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 const createFiscalDates = (year: number, endMonth: number) => {
   const startMonth = endMonth === 12 ? 1 : endMonth + 1;
@@ -15,72 +16,96 @@ const createFiscalDates = (year: number, endMonth: number) => {
   };
 };
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
+
+  const existingFiscalYear = await prisma.fiscalYear.findFirst({
+    where: {
+      id: Number(id),
+      companyId: session.user.companyId,
+    },
+  });
+
+  if (!existingFiscalYear) {
+    return NextResponse.json(
+      { error: "年度が見つかりません" },
+      { status: 404 }
+    );
+  }
+
+  await prisma.fiscalYear.delete({
+    where: {
+      id: Number(id),
+    },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
 type Params = {
   params: Promise<{
     id: string;
   }>;
 };
 
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
   const { id } = await params;
   const body = await request.json();
+
+  const existingFiscalYear = await prisma.fiscalYear.findFirst({
+    where: {
+      id: Number(id),
+      companyId: session.user.companyId,
+    },
+  });
+
+  if (!existingFiscalYear) {
+    return NextResponse.json(
+      { error: "年度が見つかりません" },
+      { status: 404 }
+    );
+  }
 
   const year = Number(body.year);
   const endMonth = Number(body.endMonth);
 
-  if (!year || year < 2000) {
-    return NextResponse.json(
-      { error: "年度を正しく入力してください" },
-      { status: 400 }
-    );
-  }
-
-  if (!endMonth || endMonth < 1 || endMonth > 12) {
-    return NextResponse.json(
-      { error: "年度末月を1〜12で入力してください" },
-      { status: 400 }
-    );
-  }
-
   const { startDate, endDate } = createFiscalDates(year, endMonth);
 
-  try {
-    const fiscalYear = await prisma.fiscalYear.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        year,
-        endMonth,
-        startDate,
-        endDate,
-      },
-    });
+  const fiscalYear = await prisma.fiscalYear.update({
+    where: {
+      id: Number(id),
+    },
+    data: {
+      year,
+      endMonth,
+      startDate,
+      endDate,
+    },
+  });
 
-    return NextResponse.json(fiscalYear);
-  } catch {
-    return NextResponse.json(
-      { error: "年度の更新に失敗しました" },
-      { status: 400 }
-    );
-  }
-}
-
-export async function DELETE(_: Request, { params }: Params) {
-  const { id } = await params;
-
-  try {
-    await prisma.fiscalYear.delete({
-      where: {
-        id: Number(id),
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json(
-      { error: "年度の削除に失敗しました" },
-      { status: 400 }
-    );
-  }
+  return NextResponse.json(fiscalYear);
 }

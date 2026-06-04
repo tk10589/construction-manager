@@ -1,97 +1,83 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  const session = await auth();
 
-  // ① 発注者取得
-  const client = await prisma.client.findUnique({
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
+
+  const existingClient = await prisma.client.findFirst({
     where: {
       id: Number(id),
+      companyId: session.user.companyId,
     },
   });
 
-  if (!client) {
+  if (!existingClient) {
     return NextResponse.json(
       { error: "発注者が見つかりません" },
       { status: 404 }
     );
   }
 
-  // ② 案件で使用中か確認
-  const usedProject = await prisma.project.findFirst({
-    where: {
-      client: client.name,
-    },
-  });
-
-  // ③ 使用中なら削除不可
-  if (usedProject) {
-    return NextResponse.json(
-      {
-        error:
-          "この発注者は案件で使用中のため削除できません",
-      },
-      { status: 400 }
-    );
-  }
-
-  // ④ 削除
   await prisma.client.delete({
     where: {
       id: Number(id),
     },
   });
 
-  return NextResponse.json({
-    success: true,
-  });
+  return NextResponse.json({ ok: true });
 }
 
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
   const body = await request.json();
 
-  const oldClient = await prisma.client.findUnique({
+  const existingClient = await prisma.client.findFirst({
     where: {
       id: Number(id),
+      companyId: session.user.companyId,
     },
   });
 
-  if (!oldClient) {
+  if (!existingClient) {
     return NextResponse.json(
       { error: "発注者が見つかりません" },
       { status: 404 }
     );
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const client = await tx.client.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        name: body.name,
-      },
-    });
-
-    await tx.project.updateMany({
-      where: {
-        client: oldClient.name,
-      },
-      data: {
-        client: body.name,
-      },
-    });
-
-    return client;
+  const client = await prisma.client.update({
+    where: {
+      id: Number(id),
+    },
+    data: {
+      name: body.name,
+    },
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json(client);
 }

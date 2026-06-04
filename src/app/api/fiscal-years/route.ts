@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 const createFiscalDates = (year: number, endMonth: number) => {
   const startMonth = endMonth === 12 ? 1 : endMonth + 1;
@@ -16,7 +17,19 @@ const createFiscalDates = (year: number, endMonth: number) => {
 };
 
 export async function GET() {
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
   const fiscalYears = await prisma.fiscalYear.findMany({
+    where: {
+      companyId: session.user.companyId,
+    },
     orderBy: {
       year: "desc",
     },
@@ -26,6 +39,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { error: "ログインが必要です" },
+      { status: 401 }
+    );
+  }
+
   const body = await request.json();
 
   const year = Number(body.year);
@@ -54,6 +76,7 @@ export async function POST(request: Request) {
         endMonth,
         startDate,
         endDate,
+        companyId: session.user.companyId,
       },
     });
 
