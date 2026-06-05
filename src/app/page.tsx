@@ -127,16 +127,18 @@ export default function Home() {
     setProjectTypes(typeData);
   };
 
-  const fetchLoginUser = async () => {
+  const fetchLoginUser = async (): Promise<LoginUser | null> => {
     const response = await fetch("/api/auth/me");
 
     if (!response.ok) {
       setLoginUser(null);
-      return;
+      return null;
     }
 
     const data = await response.json();
     setLoginUser(data);
+
+    return data;
   };
 
    // 年度取得関数
@@ -220,10 +222,19 @@ export default function Home() {
   // useEffect関係
     // 初期読み込み
   useEffect(() => {
-    fetchLoginUser();
-    fetchProjects();
-    fetchMasters();
-    fetchFiscalYears();
+    const initialize = async () => {
+      const user = await fetchLoginUser();
+
+      if (!user) {
+        return;
+      }
+
+      await fetchProjects();
+      await fetchMasters();
+      await fetchFiscalYears();
+    };
+
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -549,29 +560,29 @@ export default function Home() {
         </aside>
 
         <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden p-4 md:p-8">
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-sm font-bold text-gray-900">
+              <h1 className="text-sm font-bold text-gray-500">
                 Dashboard
               </h1>
 
-              <p className="text-2xl text-gray-900 font-bold">
+              <p className="text-2xl font-bold text-gray-900">
                 {selectedMenu.title}
               </p>
 
-              <p className="mt-4 text-base text-gray-700">
+              <p className="mt-2 text-sm text-gray-600">
                 {selectedMenu.description}
               </p>
             </div>
 
             {loginUser && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
                 <div className="text-right">
-                  <p className="font-bold text-gray-900">
+                  <p className="text-sm font-bold text-gray-900">
                     {loginUser.companyName}
                   </p>
 
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs text-gray-500">
                     {loginUser.name || loginUser.loginId}
                   </p>
                 </div>
@@ -582,7 +593,7 @@ export default function Home() {
                       callbackUrl: "/login",
                     })
                   }
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-200"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
                 >
                   ログアウト
                 </button>
@@ -590,9 +601,9 @@ export default function Home() {
             )}
           </div>
             
-          <div className="mb-2">
+          <div>
             {selectedMenu.id === "projects" && (
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="mb-3 flex flex-wrap justify-end gap-2">
                 <select
                   value={selectedFiscalYearId}
                   onChange={(e) => setSelectedFiscalYearId(e.target.value)}

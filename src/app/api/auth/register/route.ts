@@ -34,18 +34,28 @@ export async function POST(request: Request) {
     );
   }
 
-  const existingUser = await prisma.user.findFirst({
+  const existingLoginId = await prisma.user.findUnique({
     where: {
-      OR: [
-        { loginId },
-        { email },
-      ],
+      loginId,
     },
   });
 
-  if (existingUser) {
+  if (existingLoginId) {
     return NextResponse.json(
-      { error: "ログインIDまたはメールアドレスはすでに使用されています" },
+      { error: "このログインIDはすでに使用されています" },
+      { status: 400 }
+    );
+  }
+
+  const existingEmail = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (existingEmail) {
+    return NextResponse.json(
+      { error: "このメールアドレスはすでに使用されています" },
       { status: 400 }
     );
   }

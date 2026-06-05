@@ -125,3 +125,12 @@ model FiscalYear {
 
   @@unique([companyId, year])
 }
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
