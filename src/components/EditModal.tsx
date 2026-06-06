@@ -254,7 +254,7 @@ export default function EditModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}

@@ -512,12 +512,17 @@ export default function Home() {
   };
 
   return (   
-    <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
-      <div className="flex h-full overflow-hidden">
+    // <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">  
+      // <div className="flex h-full overflow-hidden">
+    <main className="min-h-screen overflow-x-hidden bg-gray-100 text-gray-900 lg:fixed lg:inset-0 lg:overflow-hidden">
+      <div className="flex min-h-screen flex-col lg:h-full lg:flex-row lg:overflow-hidden">
         <aside
-          className={`h-full shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 ${
-            isSidebarCollapsed ? "w-16" : "w-64"
-          }`}
+          className={`shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 lg:h-full ${
+          isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-64"
+        }`}
+          // className={`h-full shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 ${
+          //   isSidebarCollapsed ? "w-16" : "w-64"
+          // }`}
         >
           <div className="flex items-center justify-between">
             {!isSidebarCollapsed && (
@@ -562,7 +567,7 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden p-4 md:p-8">
+        <section className="flex min-w-0 flex-1 flex-col overflow-visible p-4 md:p-8 lg:h-full lg:overflow-hidden">
           <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-sm font-bold text-gray-500">
@@ -799,7 +804,7 @@ export default function Home() {
 
       {isNewProjectModalOpen && (
         <div
-          className="fixed inset-0 z-[100] flex touch-none items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
           onClick={() => setIsNewProjectModalOpen(false)}
         >
           <div

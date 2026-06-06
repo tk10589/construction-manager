@@ -229,7 +229,7 @@ export default function FilterModal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex touch-none items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
