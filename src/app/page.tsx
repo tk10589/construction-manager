@@ -9,6 +9,7 @@ import SettingsPage from "@/components/settings/SettingsPage";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import DeleteProjectModal from "@/components/DeleteProjectModal";
 import FilterModal from "@/components/FilterModal";
+import { useRouter } from "next/navigation";
 import {
   fetchProjectsApi,
   fetchClientsApi,
@@ -61,6 +62,7 @@ const menuItems = [
 
 export default function Home() {
   const [loginUser, setLoginUser] = useState<LoginUser | null>(null);
+  const router = useRouter();
 
   const [selectedMenu, setSelectedMenu] = useState(menuItems[0]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -226,6 +228,7 @@ export default function Home() {
       const user = await fetchLoginUser();
 
       if (!user) {
+        router.push("/login");
         return;
       }
 
@@ -235,7 +238,7 @@ export default function Home() {
     };
 
     initialize();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!toast) return;

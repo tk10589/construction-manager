@@ -300,6 +300,49 @@ export default function ProjectDetailModal({
     editTotalAmount > 0
       ? editExecutionBudget / editTotalAmount
       : null;
+  
+  const formatYen = (value?: number | null) => {
+    if (value === null || value === undefined) return "-";
+    return `¥${Number(value).toLocaleString("ja-JP")}`;
+  };
+
+  const formatDate = (value?: string | Date | null) => {
+    if (!value) return "-";
+
+    return new Date(value).toLocaleDateString("ja-JP");
+  };
+
+  const totalAmount =
+    selectedProject.amount + (selectedProject.additionalAmount || 0);
+
+  const executionBudget =
+    (selectedProject.materialCost || 0) +
+    (selectedProject.laborCost || 0) +
+    (selectedProject.expenseCost || 0) +
+    (selectedProject.outsourceCost || 0);
+
+  const grossProfit = totalAmount - executionBudget;
+
+  const costRate =
+    totalAmount > 0 ? executionBudget / totalAmount : null;
+
+  const profitRate =
+    totalAmount > 0 ? grossProfit / totalAmount : null;
+
+  const DetailItem = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: React.ReactNode;
+  }) => (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+      <p className="text-xs font-semibold text-gray-500">{label}</p>
+      <div className="mt-1 text-sm font-bold text-gray-900">
+        {value || "-"}
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -319,60 +362,96 @@ export default function ProjectDetailModal({
         {/* 表示モード */}
         {!isEditing && (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 text-sm">
-            <div className="space-y-2">
-              <p><b>案件番号：</b>{selectedProject.code}</p>
-              <p><b>受注日：</b>
-                {selectedProject.orderDate
-                ? new Date(selectedProject.orderDate).toLocaleDateString()
-                : "-"}
-              </p>
-              <p><b>種別：</b>{selectedProject.type}</p>
-              <p><b>案件名：</b>{selectedProject.name}</p>
-              <p><b>発注者：</b>{selectedProject.client}</p>
-              <p><b>発注者担当者：</b>{selectedProject.clientStaff || "-"}</p>
-              <p><b>営業担当者：</b>{selectedProject.salesStaff || "-"}</p>
-              <p><b>担当者：</b>{selectedProject.manager}</p>
-              <p><b>外注依頼先：</b>{selectedProject.outsourceCompany || "-"}</p>
-              <p><b>受注金額：</b>¥{selectedProject.amount.toLocaleString()}</p>
-              <p><b>追加受注金額：</b>{formatMoney(selectedProject.additionalAmount)}</p>
-              <p><b>売上合計：</b>¥{getTotalAmount(selectedProject).toLocaleString("ja-JP")}</p>
+            <div className="space-y-5">
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-blue-600">
+                      {selectedProject.code}
+                    </p>
+                    <h2 className="mt-1 text-xl font-bold text-gray-900">
+                      {selectedProject.name}
+                    </h2>
+                  </div>
 
-              <hr className="my-2" />
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-700">
+                    {selectedProject.status || "未設定"}
+                  </span>
+                </div>
+              </div>
 
-              <p><b>材料費：</b>{formatMoney(selectedProject.materialCost)}</p>
-              <p><b>労務費：</b>{formatMoney(selectedProject.laborCost)}</p>
-              <p><b>経費他：</b>{formatMoney(selectedProject.expenseCost)}</p>
-              <p><b>外注費：</b>{formatMoney(selectedProject.outsourceCost)}</p>
+              <section>
+                <h3 className="mb-3 text-sm font-bold text-gray-700">
+                  基本情報
+                </h3>
 
-              <hr className="my-2" />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <DetailItem label="種別" value={selectedProject.type} />
+                  <DetailItem label="発注者" value={selectedProject.client} />
+                  <DetailItem label="発注者担当" value={selectedProject.clientStaff} />
+                  <DetailItem label="営業担当" value={selectedProject.salesStaff} />
+                  <DetailItem label="担当者" value={selectedProject.manager} />
+                  <DetailItem label="外注依頼先" value={selectedProject.outsourceCompany} />
+                </div>
+              </section>
 
-              <p><b>実行予算：</b>¥{getExecutionBudget(selectedProject).toLocaleString("ja-JP")}</p>
-              <p>
-                <b>原価率：</b>
-                {getCostRate(selectedProject) !== null
-                  ? `${(getCostRate(selectedProject)! * 100).toFixed(1)}%`
-                  : "-"}
-              </p>
+              <section>
+                <h3 className="mb-3 text-sm font-bold text-gray-700">
+                  金額・原価情報
+                </h3>
 
-              <p>
-                <b>粗利：</b>
-                ¥{getGrossProfit(selectedProject).toLocaleString("ja-JP")}
-              </p>
-              <p>
-                <b>着工日：</b>
-                {selectedProject.startDate
-                ? new Date(selectedProject.startDate).toLocaleDateString()
-                : "-"}
-              </p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <DetailItem label="受注金額" value={formatYen(selectedProject.amount)} />
+                  <DetailItem label="追加受注金額" value={formatYen(selectedProject.additionalAmount)} />
+                  <DetailItem label="売上合計" value={formatYen(totalAmount)} />
 
-              <p>
-                <b>完了日：</b>
-                {selectedProject.endDate
-                ? new Date(selectedProject.endDate).toLocaleDateString()
-                : "-"}
-              </p>
-              <p><b>進捗：</b>{selectedProject.status}</p>
-              <p><b>備考：</b>{selectedProject.note || "-"}</p>
+                  <DetailItem label="材料費" value={formatYen(selectedProject.materialCost)} />
+                  <DetailItem label="労務費" value={formatYen(selectedProject.laborCost)} />
+                  <DetailItem label="経費他" value={formatYen(selectedProject.expenseCost)} />
+                  <DetailItem label="外注費" value={formatYen(selectedProject.outsourceCost)} />
+                  <DetailItem label="実行予算" value={formatYen(executionBudget)} />
+                  <DetailItem label="粗利" value={formatYen(grossProfit)} />
+
+                  <DetailItem
+                    label="原価率"
+                    value={
+                      costRate !== null
+                        ? `${(costRate * 100).toFixed(1)}%`
+                        : "-"
+                    }
+                  />
+                  <DetailItem
+                    label="利益率"
+                    value={
+                      profitRate !== null
+                        ? `${(profitRate * 100).toFixed(1)}%`
+                        : "-"
+                    }
+                  />
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-3 text-sm font-bold text-gray-700">
+                  日程情報
+                </h3>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <DetailItem label="受注日" value={formatDate(selectedProject.orderDate)} />
+                  <DetailItem label="開始日" value={formatDate(selectedProject.startDate)} />
+                  <DetailItem label="完了日" value={formatDate(selectedProject.endDate)} />
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-3 text-sm font-bold text-gray-700">
+                  備考
+                </h3>
+
+                <div className="min-h-[80px] rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
+                  {selectedProject.note || "備考はありません"}
+                </div>
+              </section>
             </div>
           </div>
         )}
