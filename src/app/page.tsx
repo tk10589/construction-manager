@@ -810,16 +810,16 @@ export default function Home() {
           onClick={() => setIsNewProjectModalOpen(false)}
         >
           <div
-            className="relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg touch-auto"
+            className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-gray-200 px-6 py-4">
+            <div className="shrink-0 border-b border-gray-200 px-6 py-4">
               <h2 className="text-lg font-bold text-gray-900">
                 新規案件登録
               </h2>
             </div>
 
-            <div className="max-h-[calc(85vh-72px)] overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
               <NewProjectForm
                 onAdd={async (project) => {
                   const success = await addProject(project);

@@ -258,11 +258,15 @@ export default function EditModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="px-6 py-4 relative z-[110] w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white shadow-lg"
+        className="relative z-[110] flex w-full max-w-2xl max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-white shadow-lg"
       >
-        <h2 className="text-xl font-bold">案件編集</h2>
+        <div className="shrink-0 border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-900">
+            案件編集
+          </h2>
+        </div>
 
-        <div className="max-h-[60vh] overflow-y-auto overscroll-contain touch-auto px-6 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
           <div>
             <label className="mb-1 block text-sm font-semibold">
               案件番号
@@ -847,85 +851,87 @@ export default function EditModal({
             </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg border px-4 py-2 font-bold"
-          >
-            閉じる
-          </button>
+        <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+            >
+              閉じる
+            </button>
 
-          <button
-            onClick={() => {
-              const newErrors: {
-                code?: string;
-                name?: string;
-                client?: string;
-                manager?: string;
-                amount?: string;
-              } = {};
+            <button
+              onClick={() => {
+                const newErrors: {
+                  code?: string;
+                  name?: string;
+                  client?: string;
+                  manager?: string;
+                  amount?: string;
+                } = {};
 
-              const numericAmount = Number(
-                amount.replace(/,/g, "")
-              );
+                const numericAmount = Number(
+                  amount.replace(/,/g, "")
+                );
 
-              const numericBudget = budget
-                ? Number(budget.replace(/,/g, ""))
-                : undefined;
+                const numericBudget = budget
+                  ? Number(budget.replace(/,/g, ""))
+                  : undefined;
 
-              const numericOutsourceCost = outsourceCost
-                ? Number(outsourceCost.replace(/,/g, ""))
-                : 0;
+                const numericOutsourceCost = outsourceCost
+                  ? Number(outsourceCost.replace(/,/g, ""))
+                  : 0;
 
-              const numericAdditionalAmount = toNumber(additionalAmount);
-              const numericMaterialCost = toNumber(materialCost);
-              const numericLaborCost = toNumber(laborCost);
-              const numericExpenseCost = toNumber(expenseCost);
+                const numericAdditionalAmount = toNumber(additionalAmount);
+                const numericMaterialCost = toNumber(materialCost);
+                const numericLaborCost = toNumber(laborCost);
+                const numericExpenseCost = toNumber(expenseCost);
 
-              if (!editData.code.trim()) {
-                newErrors.code = "案件番号を入力してください";
-              }
+                if (!editData.code.trim()) {
+                  newErrors.code = "案件番号を入力してください";
+                }
 
-              if (!/^[A-Za-z0-9-]+$/.test(editData.code)) {
-                newErrors.code =
-                  "案件番号は半角英数字とハイフンのみ使用できます";
-              }
+                if (!/^[A-Za-z0-9-]+$/.test(editData.code)) {
+                  newErrors.code =
+                    "案件番号は半角英数字とハイフンのみ使用できます";
+                }
 
-              if (!editData.name.trim()) {
-                newErrors.name = "案件名を入力してください";
-              }
+                if (!editData.name.trim()) {
+                  newErrors.name = "案件名を入力してください";
+                }
 
-              if (!editData.client.trim()) {
-                newErrors.client = "発注者を選択してください";
-              }
+                if (!editData.client.trim()) {
+                  newErrors.client = "発注者を選択してください";
+                }
 
-              if (!editData.manager.trim()) {
-                newErrors.manager = "担当者を選択してください";
-              }
+                if (!editData.manager.trim()) {
+                  newErrors.manager = "担当者を選択してください";
+                }
 
-              if (!numericAmount || numericAmount <= 0) {
-                newErrors.amount =
-                  "受注金額は1以上で入力してください";
-              }
+                if (!numericAmount || numericAmount <= 0) {
+                  newErrors.amount =
+                    "受注金額は1以上で入力してください";
+                }
 
-              setErrors(newErrors);
+                setErrors(newErrors);
 
-              if (Object.keys(newErrors).length > 0) return;
+                if (Object.keys(newErrors).length > 0) return;
 
-              onSave({
-                ...editData,
-                amount: numericAmount,
-                additionalAmount: numericAdditionalAmount,
-                materialCost: numericMaterialCost,
-                laborCost: numericLaborCost,
-                expenseCost: numericExpenseCost,
-                outsourceCost: numericOutsourceCost,
-              });
-            }}
-            className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"
-          >
-            保存
-          </button>
+                onSave({
+                  ...editData,
+                  amount: numericAmount,
+                  additionalAmount: numericAdditionalAmount,
+                  materialCost: numericMaterialCost,
+                  laborCost: numericLaborCost,
+                  expenseCost: numericExpenseCost,
+                  outsourceCost: numericOutsourceCost,
+                });
+              }}
+              className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700"
+            >
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>

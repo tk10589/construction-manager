@@ -134,6 +134,22 @@ export default function NewProjectForm({
     return value ? Number(value.replace(/,/g, "")) : 0;
   };
 
+  const editTotalAmount =
+    toNumber(amount) + toNumber(additionalAmount);
+
+  const editExecutionBudget =
+    toNumber(materialCost) +
+    toNumber(laborCost) +
+    toNumber(expenseCost) +
+    toNumber(outsourceCost);
+
+  const editGrossProfit = editTotalAmount - editExecutionBudget;
+
+  const editCostRate =
+    editTotalAmount > 0
+      ? editExecutionBudget / editTotalAmount
+      : null;
+
   const handleSubmit = async () => {
     
     // const numericAmount = Number(amount.replace(/,/g, ""));
@@ -231,8 +247,8 @@ export default function NewProjectForm({
   };
 
   return (
-    <div className="flex h-full max-h-full w-full flex-col overflow-hidden bg-white text-sm md:text-base">
-      <div className="max-h-[60vh] overflow-y-auto overscroll-contain touch-auto px-6 py-5">
+    <div className="flex min-h-0 w-full flex-col bg-white text-sm md:text-base">
+      <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-semibold">
             種別
@@ -531,6 +547,10 @@ export default function NewProjectForm({
           />
         </div>
 
+        <p>
+          <b>売上合計：</b>¥{editTotalAmount.toLocaleString("ja-JP")}
+        </p>
+
         <div>
           <label className="mb-1 block text-sm font-semibold text-gray-800">
             材料費
@@ -628,16 +648,17 @@ export default function NewProjectForm({
           />
         </div>
 
-        <div className="rounded-lg bg-gray-100 px-4 py-3 text-sm font-bold text-gray-800">
-          実行予算：
-          ¥
-          {(
-            toNumber(materialCost) +
-            toNumber(laborCost) +
-            toNumber(expenseCost) +
-            toNumber(outsourceCost)
-          ).toLocaleString("ja-JP")}
-        </div>
+        <div className="space-y-1 rounded-lg bg-gray-100 px-4 py-3 text-sm font-bold text-gray-800">
+            <p>売上合計：¥{editTotalAmount.toLocaleString("ja-JP")}</p>
+            <p>実行予算：¥{editExecutionBudget.toLocaleString("ja-JP")}</p>
+            <p>
+              原価率：
+              {editCostRate !== null
+                ? `${(editCostRate * 100).toFixed(1)}%`
+                : "-"}
+            </p>
+            <p>粗利：¥{editGrossProfit.toLocaleString("ja-JP")}</p>
+          </div>
         
         <div>
           <label className="mb-1 block text-sm font-semibold text-gray-800">
@@ -694,7 +715,7 @@ export default function NewProjectForm({
         </div> 
       </div>      
       
-      <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+      <div className="sticky bottom-0 shrink-0 border-t border-gray-200 bg-white px-0 py-4">
         <div className="flex justify-end gap-3">
           <button
             type="button"
