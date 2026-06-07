@@ -711,21 +711,23 @@ export default function Home() {
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="w-full overflow-x-auto">
             {selectedMenu.id === "projects" ? (
               loading ? (
                 <p className="text-gray-700">読み込み中...</p>
               ) : (
-                <ProjectsTable
-                  projects={sortedProjects}
-                  sortKey={sortKey}
-                  setSortKey={setSortKey}
-                  sortOrder={sortOrder}
-                  setSortOrder={setSortOrder}
-                  setDeletingProject={setDeletingProject}
-                  onEdit={editProject}
-                  setSelectedProject={setSelectedProject}
-                />
+                <div className="w-full overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                  <ProjectsTable
+                    projects={sortedProjects}
+                    sortKey={sortKey}
+                    setSortKey={setSortKey}
+                    sortOrder={sortOrder}
+                    setSortOrder={setSortOrder}
+                    setDeletingProject={setDeletingProject}
+                    onEdit={editProject}
+                    setSelectedProject={setSelectedProject}
+                  />
+                </div>
               )
 
             ) : selectedMenu.id === "settings" ? (
