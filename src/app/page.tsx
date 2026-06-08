@@ -512,11 +512,11 @@ export default function Home() {
   };
 
   return (   
-    <main className="h-[100dvh] overflow-hidden bg-gray-100 text-gray-900">
-      <div className="flex h-full flex-col overflow-hidden lg:flex-row">
+    <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
+      <div className="flex h-full flex-col overflow-hidden md:flex-row">
         <aside
-          className={`shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 lg:h-full ${
-          isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-64"
+          className={`shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 md:h-full ${
+          isSidebarCollapsed ? "w-full md:w-16" : "w-full md:w-64"
         }`}
         >
           <div className="flex items-center justify-between">
@@ -562,7 +562,7 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 lg:flex lg:flex-col lg:overflow-hidden">
+        <section className="min-h-0 flex-1 overflow-y-auto p-4 md:flex md:h-full md:min-w-0 md:flex-col md:overflow-hidden md:p-8">
           <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-sm font-bold text-gray-500">
