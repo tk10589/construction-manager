@@ -711,7 +711,7 @@ export default function Home() {
               loading ? (
                 <p className="text-gray-700">読み込み中...</p>
               ) : (
-                <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-white">
+                <div className="h-full max-w-full overflow-auto rounded-xl border border-gray-200 bg-white">
                   <ProjectsTable
                     projects={sortedProjects}
                     sortKey={sortKey}

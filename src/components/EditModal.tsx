@@ -254,7 +254,7 @@ export default function EditModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/40 p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -659,7 +659,7 @@ export default function EditModal({
           <p>
             <b>売上合計：</b>¥{editTotalAmount.toLocaleString("ja-JP")}
           </p>
-          
+
           <div>
             <label className="mb-1 block text-sm font-semibold">
               材料費
