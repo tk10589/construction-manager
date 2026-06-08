@@ -62,7 +62,7 @@ export default function ProjectsTable({
 
   return (
     <div className="h-full min-h-[260px] overflow-auto overscroll-contain rounded-lg border border-gray-300 bg-white">
-      <table className="min-w-[2200px] lg:min-w-[2500px] table-fixed border-collapse bg-white text-xs lg:text-sm">
+      <table className="min-w-[1400px] lg:min-w-[2500px] table-fixed border-collapse bg-white text-xs lg:text-sm">
         <thead className="sticky top-0 z-40 bg-gray-100 text-left text-gray-900">
           <tr>
             <th

@@ -659,6 +659,7 @@ export default function EditModal({
           <p>
             <b>売上合計：</b>¥{editTotalAmount.toLocaleString("ja-JP")}
           </p>
+          
           <div>
             <label className="mb-1 block text-sm font-semibold">
               材料費

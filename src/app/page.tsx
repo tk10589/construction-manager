@@ -512,17 +512,12 @@ export default function Home() {
   };
 
   return (   
-    // <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">  
-      // <div className="flex h-full overflow-hidden">
-    <main className="min-h-screen overflow-x-hidden bg-gray-100 text-gray-900 lg:fixed lg:inset-0 lg:overflow-hidden">
-      <div className="flex min-h-screen flex-col lg:h-full lg:flex-row lg:overflow-hidden">
+    <main className="h-[100dvh] overflow-hidden bg-gray-100 text-gray-900">
+      <div className="flex h-full flex-col overflow-hidden lg:flex-row">
         <aside
           className={`shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 lg:h-full ${
           isSidebarCollapsed ? "w-full lg:w-16" : "w-full lg:w-64"
         }`}
-          // className={`h-full shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 ${
-          //   isSidebarCollapsed ? "w-16" : "w-64"
-          // }`}
         >
           <div className="flex items-center justify-between">
             {!isSidebarCollapsed && (
@@ -567,7 +562,7 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col overflow-visible p-4 md:p-8 lg:h-full lg:overflow-hidden">
+        <section className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 lg:flex lg:flex-col lg:overflow-hidden">
           <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-sm font-bold text-gray-500">
@@ -711,12 +706,12 @@ export default function Home() {
             </div>
           )}
 
-          <div className="w-full overflow-x-auto">
+          <div className="min-h-0 flex-1 overflow-hidden">
             {selectedMenu.id === "projects" ? (
               loading ? (
                 <p className="text-gray-700">読み込み中...</p>
               ) : (
-                <div className="w-full overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-white">
                   <ProjectsTable
                     projects={sortedProjects}
                     sortKey={sortKey}
@@ -839,7 +834,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
     </main>
   );
 }

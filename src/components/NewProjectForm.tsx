@@ -151,14 +151,6 @@ export default function NewProjectForm({
       : null;
 
   const handleSubmit = async () => {
-    
-    // const numericAmount = Number(amount.replace(/,/g, ""));
-    // const numericBudget = budget
-    //   ? Number(budget.replace(/,/g, ""))
-    //   : undefined;
-    // const numericOutsourceCost = outsourceCost
-    //   ? Number(outsourceCost.replace(/,/g, ""))
-    //   : 0;
     const numericAmount = toNumber(amount);
     const numericAdditionalAmount = toNumber(additionalAmount);
     const numericMaterialCost = toNumber(materialCost);
