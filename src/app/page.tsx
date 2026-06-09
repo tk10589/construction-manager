@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import ProjectsTable from "@/components/ProjectsTable";
 import NewProjectForm from "@/components/NewProjectForm";
@@ -91,6 +91,17 @@ export default function Home() {
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string>("all");
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
+  const [csvImportRows, setCsvImportRows] = useState<string[][]>([]);
+  const [csvImportError, setCsvImportError] = useState("");
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCsvFileName, setSelectedCsvFileName] = useState("");
+  const [csvHeaderValid, setCsvHeaderValid] = useState(false);
+  const [csvValidationErrors, setCsvValidationErrors] = useState<string[]>([]);
+  const [csvDuplicateErrors, setCsvDuplicateErrors] = useState<string[]>([]);
+
+  const [csvImportMode, setCsvImportMode] = useState<"append" | "replace">("append");
+  const [csvMasterErrors, setCsvMasterErrors] = useState<string[]>([]);
 
   const [filters, setFilters] = useState<ProjectFilters>({
     types: [],
@@ -118,15 +129,23 @@ export default function Home() {
   };
 
   const fetchMasters = async () => {
-    const [clientData, staffData, typeData] = await Promise.all([
-      fetchClientsApi(),
-      fetchStaffsApi(),
-      fetchProjectTypesApi(),
-    ]);
+    try {
+      const [clientData, staffData, typeData] = await Promise.all([
+        fetchClientsApi(),
+        fetchStaffsApi(),
+        fetchProjectTypesApi(),
+      ]);
 
-    setClients(clientData);
-    setStaffs(staffData);
-    setProjectTypes(typeData);
+      setClients(clientData);
+      setStaffs(staffData);
+      setProjectTypes(typeData);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "マスタ一覧の取得に失敗しました"
+      );
+    }
   };
 
   const fetchLoginUser = async (): Promise<LoginUser | null> => {
@@ -409,79 +428,28 @@ export default function Home() {
       ? summary.executionBudget / summary.totalAmount
       : null;
 
+  // CSV取込ファイルリセットボタン（state初期化ｸﾘｱ）
+  const clearCsvImport = () => {
+    setCsvImportRows([]);
+    setCsvImportError("");
+    setSelectedCsvFileName("");
+    setCsvValidationErrors([]);
+    setCsvDuplicateErrors([]);
+    setCsvMasterErrors([]);
+
+    if (csvFileInputRef.current) {
+      csvFileInputRef.current.value = "";
+    }
+  };
+
   
-  // ｃｓｖ出力処理
-  const exportCSV = () => {
-    // ヘッダー
-    const header = [
-      "案件番号",
-      "種別",
-      "案件名",
-      "受注日",
-      "発注者",
-      "発注者担当者",
-      "営業担当者",
-      "担当者",
-      "外注依頼先",
-      "受注金額",
-      "追加受注金額",
-      "売上合計",
-      "材料費",
-      "労務費",
-      "経費他",
-      "外注費",
-      "実行予算",
-      "原価率",
-      "粗利",
-      "着工日",
-      "完了日",
-      "進捗",
-      "備考",
-    ];
-
-    // データ（今表示されているものを使う）
-    const rows = sortedProjects.map((p) => {
-      const costRate = getCostRate(p);
-
-      const formatDate = (date?: string) =>
-        date ? new Date(date).toLocaleDateString("ja-JP") : "";
-
-      const cleanNote = p.note
-        ? p.note.replace(/\r?\n/g, " ")
-        : "";
-
-      return [
-        p.code,
-        p.type,
-        p.name,
-        formatDate(p.orderDate),
-        p.client,
-        p.clientStaff || "",
-        p.salesStaff || "",
-        p.manager,
-        p.outsourceCompany || "",
-
-        p.amount,
-        p.additionalAmount ?? 0,
-        getTotalAmount(p),
-
-        p.materialCost ?? 0,
-        p.laborCost ?? 0,
-        p.expenseCost ?? 0,
-        p.outsourceCost ?? 0,
-        getExecutionBudget(p),
-
-        costRate !== null ? costRate.toFixed(4) : "",
-        getGrossProfit(p),
-
-        formatDate(p.startDate),
-        formatDate(p.endDate),
-        p.status,
-        cleanNote,
-      ];
-    });
-
-    // CSV文字列作成
+  // ｃｓｖ出力処理（共通関数）
+  const downloadCSV = (
+    fileName: string,
+    header: string[],
+    rows: (string | number)[][]
+  ) => {
+    // CSV文字列作成（カンマ対策含）
     const csvContent = [header, ...rows]
       .map((row) =>
         row
@@ -492,7 +460,7 @@ export default function Home() {
           })
           .join(",")
       )
-      .join("\n");
+      .join("\r\n");
 
     // BOM付き（Excel文字化け防止）
     const bom = "\uFEFF";
@@ -505,10 +473,442 @@ export default function Home() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "projects.csv";
+    link.download = fileName;
     link.click();
 
     URL.revokeObjectURL(url);
+  };
+
+  // CSV改行をスペースに変換する関数
+  const normalizeCsvCell = (value?: string) => {
+    return (value || "")
+      .replace(/\r?\n/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // 重複チェック関数
+  const validateDuplicateCodes = (
+    rows: string[][],
+    projects: Project[],
+    mode: "append" | "replace"
+  ) => {
+    const errors: string[] = [];
+
+    const header = rows[0];
+    const codeIndex = header.indexOf("案件番号");
+
+    const existingCodes = new Set(projects.map((p) => p.code));
+    const csvCodes = new Set<string>();
+
+    rows.slice(1).forEach((row, index) => {
+      const lineNo = index + 2;
+      const code = normalizeCsvCell(row[codeIndex]);
+
+      if (!code) return;
+
+      if (csvCodes.has(code)) {
+        errors.push(
+          `${lineNo}行目：案件番号 ${code} がCSV内で重複しています`
+        );
+      }
+
+      if (mode === "append" && existingCodes.has(code)) {
+        errors.push(
+          `${lineNo}行目：案件番号 ${code} は既に存在します`
+        );
+      }
+
+      csvCodes.add(code);
+    });
+
+    return errors;
+  };
+
+  // CSVヘッダーを共通化
+  const projectCsvHeader = [
+    "案件番号",
+    "種別",
+    "案件名",
+    "受注日",
+    "発注者",
+    "発注者担当者",
+    "営業担当者",
+    "担当者",
+    "外注依頼先",
+    "受注金額",
+    "追加受注金額",
+    "売上合計",
+    "材料費",
+    "労務費",
+    "経費他",
+    "外注費",
+    "実行予算",
+    "原価率",
+    "粗利",
+    "着工日",
+    "完了日",
+    "進捗",
+    "備考",
+  ];
+
+  // CSV取込用テンプレートヘッダー
+  const projectImportCsvHeader = [
+    "案件番号",
+    "種別",
+    "案件名",
+    "受注日",
+    "発注者",
+    "発注者担当者",
+    "営業担当者",
+    "担当者",
+    "外注依頼先",
+    "受注金額",
+    "追加受注金額",
+    "材料費",
+    "労務費",
+    "経費他",
+    "外注費",
+    "着工日",
+    "完了日",
+    "進捗",
+    "備考",
+  ];
+  
+  // CSV読み込み関数（引用符内の改行を行区切りにしない）
+  const parseCSV = (text: string) => {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    const normalizedText = text.replace(/^\uFEFF/, "");
+
+    for (let i = 0; i < normalizedText.length; i++) {
+      const char = normalizedText[i];
+      const nextChar = normalizedText[i + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+        continue;
+      }
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char === "," && !inQuotes) {
+        row.push(current);
+        current = "";
+        continue;
+      }
+
+      if ((char === "\n" || char === "\r") && !inQuotes) {
+        if (char === "\r" && nextChar === "\n") {
+          i++;
+        }
+
+        row.push(current);
+
+        const hasValue = row.some((cell) => cell.trim() !== "");
+
+        if (hasValue) {
+          rows.push(row);
+        }
+
+        row = [];
+        current = "";
+        continue;
+      }
+
+      current += char;
+    }
+
+    row.push(current);
+
+    const hasValue = row.some((cell) => cell.trim() !== "");
+
+    if (hasValue) {
+      rows.push(row);
+    }
+
+    return rows;
+  };
+
+  const normalizeMasterValue = (value?: string) => {
+    const normalized = normalizeCsvCell(value);
+    return normalized || "未登録";
+  };
+
+  const normalizeForCompare = (value?: string) => {
+    return normalizeMasterValue(value)
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // CSV取込ファイル選択処理
+  const handleCsvFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCsvImportError("");
+    setCsvImportRows([]);
+    setCsvValidationErrors([]);
+    setSelectedCsvFileName("");
+
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.name.endsWith(".csv")) {
+      setCsvImportError("CSVファイルを選択してください");
+      return;
+    }
+
+    const text = await file.text();
+    const rows = parseCSV(text);
+
+    if (rows.length < 2) {
+          setCsvImportError("取込できるデータがありません");
+          return;
+    }
+
+    const header = rows[0];
+
+    const headerValid =
+      JSON.stringify(header) ===
+      JSON.stringify(projectImportCsvHeader);
+
+    if (!headerValid) {
+      setCsvImportError(
+        "CSVヘッダーがテンプレートと一致しません"
+      );
+      return;
+    }
+
+    const duplicateErrors =
+      validateDuplicateCodes(
+        rows,
+        sortedProjects,
+        csvImportMode
+      );
+
+    setCsvDuplicateErrors(
+      duplicateErrors
+    );
+
+    const masterErrors = validateMasterData(rows);    
+
+    const validationErrors = validateCsvRows(rows);    
+    
+    setCsvImportRows(rows);
+    setSelectedCsvFileName(file.name);
+    setCsvValidationErrors(validationErrors);
+    setCsvMasterErrors(masterErrors);
+  };
+  
+  //CSVインポート必須項目チェック
+  const validateCsvRows = (rows: string[][]) => {
+    const errors: string[] = [];
+    const header = rows[0];
+
+    const indexOf = (name: string) => header.indexOf(name);
+
+    const codeIndex = indexOf("案件番号");
+    const nameIndex = indexOf("案件名");
+    const clientIndex = indexOf("発注者");
+    const clientStaffIndex = indexOf("発注者担当者");
+    const salesStaffIndex = indexOf("営業担当者");  
+    const managerIndex = indexOf("担当者");
+    const amountIndex = indexOf("受注金額");
+    const noteIndex = indexOf("備考");
+
+    rows.slice(1).forEach((row, index) => {
+      const lineNo = index + 2;
+
+      const code = normalizeCsvCell(row[codeIndex]);
+      const name = normalizeCsvCell(row[nameIndex]);
+      const client = normalizeCsvCell(row[clientIndex]);
+      const clientStaff = normalizeCsvCell(row[clientStaffIndex]);
+      const salesStaff = normalizeForCompare(row[salesStaffIndex]);
+      const manager = normalizeForCompare(row[managerIndex]);
+      const amount = normalizeCsvCell(row[amountIndex]);      
+      const note = normalizeCsvCell(row[noteIndex]);
+
+      if (!code) errors.push(`${lineNo}行目：案件番号が未入力`);
+      if (!name) errors.push(`${lineNo}行目：案件名が未入力`);
+      if (!client) errors.push(`${lineNo}行目：発注者が未入力`);
+      if (!manager) errors.push(`${lineNo}行目：担当者が未入力`);
+      if (!amount) errors.push(`${lineNo}行目：受注金額が未入力`);
+
+      if (amount && (isNaN(Number(amount)) || Number(amount) <= 0)) {
+        errors.push(`${lineNo}行目：受注金額が不正`);
+      }
+    });
+
+    return errors;
+  };
+
+  const validateMasterData = (
+    rows: string[][]
+  ) => {
+    const errors: string[] = [];
+
+    const header = rows[0];
+
+    const typeIndex = header.indexOf("種別");
+    const clientIndex = header.indexOf("発注者");
+    const managerIndex = header.indexOf("担当者");
+    const salesStaffIndex = header.indexOf("営業担当者");
+
+    const clientSet = new Set(
+      clients.map((c) => c.name)
+    );
+
+    const staffSet = new Set(
+      staffs.map((s) => normalizeForCompare(s.name))
+    );
+
+    const typeSet = new Set(
+      projectTypes.map((t) => t.code)
+    );
+
+    rows.slice(1).forEach((row, index) => {
+      const lineNo = index + 2;
+
+      const type =
+        normalizeMasterValue(
+          row[typeIndex]
+        );
+
+      const client =
+        normalizeMasterValue(
+          row[clientIndex]
+        );
+
+      const manager =
+        normalizeMasterValue(
+          row[managerIndex]
+        );
+
+      const salesStaff =
+        normalizeMasterValue(
+          row[salesStaffIndex]
+        );
+
+      if (!clientSet.has(client)) {
+        errors.push(
+          `${lineNo}行目：発注者「${client}」が未登録です`
+        );
+      }
+
+      if (!staffSet.has(manager)) {
+        errors.push(
+          `${lineNo}行目：担当者「${manager}」が未登録です`
+        );
+      }
+
+      if (!staffSet.has(salesStaff)) {
+        errors.push(
+          `${lineNo}行目：営業担当者「${salesStaff}」が未登録です`
+        );
+      }
+
+      if (!typeSet.has(type)) {
+        errors.push(
+          `${lineNo}行目：種別「${type}」が未登録です`
+        );
+      }
+    });
+
+    return errors;
+  };
+
+  // CSV出力・CSV読み込み関数関係
+  const exportCSV = () => {
+    const formatDate = (date?: string | null) => {
+      if (!date) return "";
+
+      const d = new Date(date);
+      if (Number.isNaN(d.getTime())) return "";
+
+      return d.toISOString().slice(0, 10);
+    };
+
+    const rows = sortedProjects.map((p) => {
+      const totalAmount = getTotalAmount(p);
+      const executionBudget = getExecutionBudget(p);
+      const grossProfit = getGrossProfit(p);
+      const costRate = getCostRate(p);
+
+      return [
+        p.code,
+        p.type,
+        p.name,
+        formatDate(p.orderDate),
+        p.client,
+        p.clientStaff || "",
+        p.salesStaff || "",
+        p.manager,
+        p.outsourceCompany || "",
+        p.amount,
+        p.additionalAmount ?? 0,
+        totalAmount,
+        p.materialCost ?? 0,
+        p.laborCost ?? 0,
+        p.expenseCost ?? 0,
+        p.outsourceCost ?? 0,
+        executionBudget,
+        costRate !== null ? `${(costRate * 100).toFixed(1)}%` : "",
+        grossProfit,
+        formatDate(p.startDate),
+        formatDate(p.endDate),
+        p.status,
+        p.note || "",
+      ];
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    downloadCSV(
+      `projects_${today}.csv`,
+      projectCsvHeader,
+      rows
+    );
+  };
+
+  // CSV取込用テンプレート出力
+  const exportProjectTemplateCSV = () => {
+    const sampleRows = [
+      [
+        "A-001",
+        "新設",
+        "サンプル案件",
+        "2026-06-09",
+        "サンプル株式会社",
+        "佐藤様",
+        "田中",
+        "鈴木",
+        "外注会社A",
+        1000000,
+        0,
+        200000,
+        300000,
+        50000,
+        100000,
+        "2026-06-10",
+        "2026-06-30",
+        "未着手",
+        "備考を入力",
+      ],
+    ];
+
+    downloadCSV(
+      "projects_import_template.csv",
+      projectImportCsvHeader,
+      sampleRows
+    );
   };
 
   return (   
@@ -641,6 +1041,20 @@ export default function Home() {
                   className="h-8 w-fit shrink-0 rounded-lg bg-green-600 px-3 text-sm font-bold text-white hover:bg-green-700"
                 >
                   CSV出力
+                </button>
+
+                <button
+                  onClick={exportProjectTemplateCSV}
+                  className="h-8 w-fit shrink-0 rounded-lg bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700"
+                >
+                  CSVテンプレート
+                </button>
+
+                <button
+                  onClick={() => setIsCsvImportModalOpen(true)}
+                  className="h-8 w-fit shrink-0 rounded-lg bg-orange-600 px-3 text-sm font-bold text-white hover:bg-orange-700"
+                >
+                  CSV取込
                 </button>
               </div>
             )}
@@ -830,6 +1244,199 @@ export default function Home() {
                 staffs={staffs}
                 projectTypes={projectTypes}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV取込モーダル */}
+      {isCsvImportModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setIsCsvImportModalOpen(false)}
+        >
+          <div
+            className="relative z-[110] flex w-full max-w-4xl max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                CSV取込
+              </h2>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <input
+                ref={csvFileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCsvFileChange}
+                className="hidden"
+              />
+
+              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="mb-2 text-sm font-bold text-gray-700">
+                  取込方式
+                </p>
+
+                <label className="flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    checked={csvImportMode === "append"}
+                    onChange={() => setCsvImportMode("append")}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="font-bold">追加登録</span>
+                    <br />
+                    既存案件は残し、CSVの新規案件だけ登録します。
+                  </span>
+                </label>
+              </div>
+
+              <button
+                onClick={() => csvFileInputRef.current?.click()}
+                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+              >
+                CSVファイル選択
+              </button>
+
+              {selectedCsvFileName && (
+                <div className="mt-2 text-sm text-gray-600">
+                  選択中: {selectedCsvFileName}
+                </div>
+              )}
+
+              <button
+                onClick={clearCsvImport}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100"
+              >
+                クリア
+              </button>
+
+              {csvImportError && (
+                <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {csvImportError}
+                </div>
+              )}
+
+              {csvValidationErrors.length > 0 && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <h3 className="mb-2 font-bold text-red-700">
+                    入力エラー
+                  </h3>
+
+                  <ul className="space-y-1 text-sm text-red-600">
+                    {csvValidationErrors
+                      .slice(0, 20)
+                      .map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                  </ul>
+
+                  {csvValidationErrors.length > 20 && (
+                    <p className="mt-2 text-xs text-red-500">
+                      他にもエラーがあります
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {csvDuplicateErrors.length > 0 && (
+                <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                  <h3 className="mb-2 font-bold text-yellow-700">
+                    重複エラー
+                  </h3>
+
+                  <ul className="space-y-1 text-sm text-yellow-700">
+                    {csvDuplicateErrors
+                      .slice(0, 20)
+                      .map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              {csvMasterErrors.length > 0 && (
+                <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-4">
+                  <h3 className="mb-2 font-bold text-orange-700">
+                    マスタ未登録
+                  </h3>
+
+                  <ul className="space-y-1 text-sm text-orange-700">
+                    {csvMasterErrors
+                      .slice(0, 20)
+                      .map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              {csvImportRows.length > 0 && (
+                <div className="rounded-lg border border-gray-200">
+                  <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold">
+                    プレビュー：{csvImportRows.length - 1}件
+                  </div>
+
+                  <div className="max-h-[50dvh] overflow-auto">
+                    <table className="min-w-[1600px] table-fixed border-collapse text-xs">
+                      <tbody>
+                        {csvImportRows.slice(0, 6).map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, cellIndex) => (
+                              <td
+                                key={cellIndex}
+                                className={`max-w-[180px] truncate border border-gray-200 px-2 py-1 ${
+                                  rowIndex === 0
+                                    ? "bg-gray-100 font-bold"
+                                    : "bg-white"
+                                }`}
+                              >
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {csvImportRows.length > 6 && (
+                    <p className="px-3 py-2 text-xs text-gray-500">
+                      ※先頭5件のみ表示しています。
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setIsCsvImportModalOpen(false)}
+                  className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  閉じる
+                </button>
+
+                <button
+                  disabled={
+                  csvImportRows.length === 0 ||
+                  csvValidationErrors.length > 0 ||
+                  csvDuplicateErrors.length > 0 ||
+                  csvMasterErrors.length > 0
+                }
+                  className={`rounded-lg px-6 py-2 font-semibold text-white ${
+                    csvImportRows.length === 0
+                      ? "bg-gray-400"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  取込確認へ
+                </button>
+              </div>
             </div>
           </div>
         </div>
