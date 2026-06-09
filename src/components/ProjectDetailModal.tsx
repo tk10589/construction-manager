@@ -58,6 +58,9 @@ export default function ProjectDetailModal({
   const [showDetailSalesStaffList, setShowDetailSalesStaffList] = useState(false);
 
   const detailSalesStaffSearchRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<
+    "basic" | "cost" | "schedule" | "files" | "history"
+  >("basic");
 
   useEffect(() => {
     
@@ -350,7 +353,7 @@ export default function ProjectDetailModal({
       onClick={onClose}
       >
       <div
-        className="relative z-[110] flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-xl bg-white shadow-lg touch-auto"
+        className="relative z-[110] flex w-full max-w-2xl max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-white shadow-lg touch-auto"
         onClick={(e) => e.stopPropagation()}
         >
         <div className="shrink-0 border-b border-gray-200 px-6 py-4">
@@ -359,10 +362,33 @@ export default function ProjectDetailModal({
           </h2>
         </div>
 
+        <div className="shrink-0 flex gap-2 overflow-x-auto border-b border-gray-200 px-6 py-3">
+          {[
+            { id: "basic", label: "基本情報" },
+            { id: "cost", label: "原価情報" },
+            { id: "schedule", label: "工程" },
+            { id: "files", label: "資料" },
+            { id: "history", label: "履歴" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                activeTab === tab.id
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* 表示モード */}
         {!isEditing && (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 text-sm">
             <div className="space-y-5">
+              
               <div className="border-b border-gray-200 pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -380,78 +406,100 @@ export default function ProjectDetailModal({
                 </div>
               </div>
 
-              <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-700">
-                  基本情報
-                </h3>
+              {activeTab === "basic" && (
+                <>                  
+                  <section>
+                    <h3 className="mb-3 text-sm font-bold text-gray-700">
+                      基本情報
+                    </h3>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <DetailItem label="種別" value={selectedProject.type} />
-                  <DetailItem label="発注者" value={selectedProject.client} />
-                  <DetailItem label="発注者担当" value={selectedProject.clientStaff} />
-                  <DetailItem label="営業担当" value={selectedProject.salesStaff} />
-                  <DetailItem label="担当者" value={selectedProject.manager} />
-                  <DetailItem label="外注依頼先" value={selectedProject.outsourceCompany} />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <DetailItem label="種別" value={selectedProject.type} />
+                      <DetailItem label="発注者" value={selectedProject.client} />
+                      <DetailItem label="発注者担当" value={selectedProject.clientStaff} />
+                      <DetailItem label="営業担当" value={selectedProject.salesStaff} />
+                      <DetailItem label="担当者" value={selectedProject.manager} />
+                      <DetailItem label="外注依頼先" value={selectedProject.outsourceCompany} />
+                    </div>
+
+                    <h3 className="mt-5 mb-3 text-sm font-bold text-gray-700">
+                      日程情報
+                    </h3>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <DetailItem label="受注日" value={formatDate(selectedProject.orderDate)} />
+                      <DetailItem label="開始日" value={formatDate(selectedProject.startDate)} />
+                      <DetailItem label="完了日" value={formatDate(selectedProject.endDate)} />
+                    </div>
+                  
+                    <h3 className="mt-5 mb-3 text-sm font-bold text-gray-700">
+                      備考
+                    </h3>
+
+                    <div className="min-h-[80px] rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
+                      {selectedProject.note || "備考はありません"}
+                    </div>
+                  </section>                  
+                </>
+              )}
+
+              {activeTab === "cost" && (
+                <>
+                  <section>
+                    <h3 className="mb-3 text-sm font-bold text-gray-700">
+                      金額・原価情報
+                    </h3>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <DetailItem label="受注金額" value={formatYen(selectedProject.amount)} />
+                      <DetailItem label="追加受注金額" value={formatYen(selectedProject.additionalAmount)} />
+                      <DetailItem label="売上合計" value={formatYen(totalAmount)} />
+
+                      <DetailItem label="材料費" value={formatYen(selectedProject.materialCost)} />
+                      <DetailItem label="労務費" value={formatYen(selectedProject.laborCost)} />
+                      <DetailItem label="経費他" value={formatYen(selectedProject.expenseCost)} />
+                      <DetailItem label="外注費" value={formatYen(selectedProject.outsourceCost)} />
+                      <DetailItem label="実行予算" value={formatYen(executionBudget)} />
+                      <DetailItem label="粗利" value={formatYen(grossProfit)} />
+
+                      <DetailItem
+                        label="原価率"
+                        value={
+                          costRate !== null
+                            ? `${(costRate * 100).toFixed(1)}%`
+                            : "-"
+                        }
+                      />
+                      <DetailItem
+                        label="利益率"
+                        value={
+                          profitRate !== null
+                            ? `${(profitRate * 100).toFixed(1)}%`
+                            : "-"
+                        }
+                      />
+                    </div>
+                  </section>                  
+                </>
+              )}
+
+              {activeTab === "schedule" && (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  工程管理機能は今後追加予定です。
                 </div>
-              </section>
+              )}
 
-              <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-700">
-                  金額・原価情報
-                </h3>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <DetailItem label="受注金額" value={formatYen(selectedProject.amount)} />
-                  <DetailItem label="追加受注金額" value={formatYen(selectedProject.additionalAmount)} />
-                  <DetailItem label="売上合計" value={formatYen(totalAmount)} />
-
-                  <DetailItem label="材料費" value={formatYen(selectedProject.materialCost)} />
-                  <DetailItem label="労務費" value={formatYen(selectedProject.laborCost)} />
-                  <DetailItem label="経費他" value={formatYen(selectedProject.expenseCost)} />
-                  <DetailItem label="外注費" value={formatYen(selectedProject.outsourceCost)} />
-                  <DetailItem label="実行予算" value={formatYen(executionBudget)} />
-                  <DetailItem label="粗利" value={formatYen(grossProfit)} />
-
-                  <DetailItem
-                    label="原価率"
-                    value={
-                      costRate !== null
-                        ? `${(costRate * 100).toFixed(1)}%`
-                        : "-"
-                    }
-                  />
-                  <DetailItem
-                    label="利益率"
-                    value={
-                      profitRate !== null
-                        ? `${(profitRate * 100).toFixed(1)}%`
-                        : "-"
-                    }
-                  />
+              {activeTab === "files" && (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  資料・添付ファイル機能は今後追加予定です。
                 </div>
-              </section>
+              )}
 
-              <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-700">
-                  日程情報
-                </h3>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <DetailItem label="受注日" value={formatDate(selectedProject.orderDate)} />
-                  <DetailItem label="開始日" value={formatDate(selectedProject.startDate)} />
-                  <DetailItem label="完了日" value={formatDate(selectedProject.endDate)} />
+              {activeTab === "history" && (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  変更履歴機能は今後追加予定です。
                 </div>
-              </section>
-
-              <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-700">
-                  備考
-                </h3>
-
-                <div className="min-h-[80px] rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
-                  {selectedProject.note || "備考はありません"}
-                </div>
-              </section>
+              )}
             </div>
           </div>
         )}
