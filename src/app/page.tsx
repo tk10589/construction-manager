@@ -512,8 +512,8 @@ export default function Home() {
   };
 
   return (   
-    <main className="fixed inset-0 overflow-hidden bg-gray-100 text-gray-900">
-      <div className="flex h-full flex-col overflow-hidden md:flex-row">
+    <main className="min-h-screen overflow-x-hidden bg-gray-100 text-gray-900 md:fixed md:inset-0 md:overflow-hidden">
+      <div className="flex min-h-screen flex-col md:h-full md:flex-row md:overflow-hidden">
         <aside
           className={`shrink-0 overflow-hidden bg-gray-900 p-4 text-white transition-all duration-300 md:h-full ${
           isSidebarCollapsed ? "w-full md:w-16" : "w-full md:w-64"
@@ -562,7 +562,7 @@ export default function Home() {
           </nav>
         </aside>
 
-        <section className="min-h-0 flex-1 overflow-y-auto p-4 md:flex md:h-full md:min-w-0 md:flex-col md:overflow-hidden md:p-8">
+        <section className="flex min-w-0 flex-1 flex-col overflow-visible p-4 md:h-full md:overflow-hidden md:p-8">
           <div className="mb-4 flex flex-col gap-3 border-b border-gray-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-sm font-bold text-gray-500">
@@ -706,7 +706,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="min-h-[320px] flex-1 overflow-hidden md:min-h-0">
             {selectedMenu.id === "projects" ? (
               loading ? (
                 <p className="text-gray-700">読み込み中...</p>
