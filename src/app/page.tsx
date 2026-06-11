@@ -104,6 +104,7 @@ export default function Home() {
   const [csvMasterErrors, setCsvMasterErrors] = useState<string[]>([]);
   const [isCsvConfirmMode, setIsCsvConfirmMode] = useState(false);
   const [isCsvImporting, setIsCsvImporting] = useState(false);
+  const [isCsvResultMode, setIsCsvResultMode] = useState(false);
 
   const [filters, setFilters] = useState<ProjectFilters>({
     types: [],
@@ -437,6 +438,8 @@ export default function Home() {
     setCsvMasterErrors([]);
     setIsCsvConfirmMode(false);
     setIsCsvImporting(false);
+    setCsvImportResult(null);
+    setIsCsvResultMode(false);
 
     if (csvFileInputRef.current) {
       csvFileInputRef.current.value = "";
@@ -758,9 +761,15 @@ export default function Home() {
       });
   };
 
+  const [csvImportResult, setCsvImportResult] = useState<{
+    imported: string[];
+    skipped: number;
+  } | null>(null);
+
   // 登録実行テスト関数
   const handleCsvImport = async () => {
     const importProjects = getCsvImportProjects();
+    const importedCodes: string[] = [];
 
     if (importProjects.length === 0) {
       alert("登録対象の案件がありません");
@@ -772,16 +781,19 @@ export default function Home() {
 
       for (const project of importProjects) {
         await createProjectApi(project);
+
+        importedCodes.push(project.code);
       }
 
       await fetchProjects();
 
-      alert(
-        `CSV取込が完了しました。\n登録件数：${importProjects.length}件\nスキップ件数：${csvImportSummary.skipCount}件`
-      );
+      setCsvImportResult({
+        imported: importedCodes,
+        skipped: csvImportSummary.skipCount,
+      });
 
-      clearCsvImport();
-      setIsCsvImportModalOpen(false);
+      setIsCsvConfirmMode(false);
+      setIsCsvResultMode(true);
     } catch (error) {
       alert(
         error instanceof Error
@@ -1433,7 +1445,160 @@ export default function Home() {
             className="relative z-[110] flex w-full max-w-4xl max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            {!isCsvConfirmMode ? (
+            {isCsvResultMode ? (
+              <>
+                {csvImportResult && (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                    <h3 className="mb-3 text-lg font-bold text-green-800">
+                      CSV取込完了
+                    </h3>
+
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        登録件数：
+                        <span className="font-bold text-green-700">
+                          {csvImportResult.imported.length}件
+                        </span>
+                      </p>
+
+                      <p>
+                        スキップ件数：
+                        <span className="font-bold text-yellow-700">
+                          {csvImportResult.skipped}件
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="mb-2 text-sm font-bold text-gray-700">
+                        登録案件
+                      </p>
+
+                      <div className="space-y-1 text-sm">
+                        {csvImportResult.imported
+                          .slice(0, 10)
+                          .map((code) => (
+                            <div key={code}>
+                              ✓ {code}
+                            </div>
+                          ))}
+                      </div>
+
+                      {csvImportResult.imported.length > 10 && (
+                        <p className="mt-2 text-xs text-gray-500">
+                          他 {csvImportResult.imported.length - 10} 件
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : isCsvConfirmMode ? (
+              <>
+                {isCsvConfirmMode && (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <h3 className="mb-3 text-lg font-bold text-blue-800">
+                        CSV取込確認
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="rounded-lg bg-white p-3">
+                          <p className="text-xs font-semibold text-gray-500">
+                            取込方式
+                          </p>
+                          <p className="mt-1 font-bold text-gray-900">
+                            追加登録
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <div className="rounded-lg bg-white p-3">
+                            <p className="text-xs font-semibold text-gray-500">
+                              CSV件数
+                            </p>
+                            <p className="mt-1 font-bold text-gray-900">
+                              {csvImportSummary.totalCount}件
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg bg-white p-3">
+                            <p className="text-xs font-semibold text-gray-500">
+                              登録予定
+                            </p>
+                            <p className="mt-1 font-bold text-green-700">
+                              {csvImportSummary.importCount}件
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg bg-white p-3">
+                            <p className="text-xs font-semibold text-gray-500">
+                              スキップ予定
+                            </p>
+                            <p className="mt-1 font-bold text-yellow-700">
+                              {csvImportSummary.skipCount}件
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-lg bg-white p-3 text-sm text-gray-700">
+                          <div className="space-y-1">
+                            <p className="font-semibold text-green-700">
+                              ✓ 入力チェック完了
+                            </p>
+                            <p className="font-semibold text-green-700">
+                              ✓ 重複チェック完了
+                            </p>
+                            <p className="font-semibold text-green-700">
+                              ✓ マスタチェック完了
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-lg bg-white p-3">
+                          <h4 className="mb-2 text-sm font-bold text-gray-700">
+                            登録予定案件
+                          </h4>
+
+                          {csvImportTargetRows.length === 0 ? (
+                            <p className="text-sm text-gray-500">
+                              登録予定の案件はありません。
+                            </p>
+                          ) : (
+                            <div className="space-y-1 text-sm text-gray-700">
+                              {csvImportTargetRows.slice(0, 5).map((row) => (
+                                <div
+                                  key={row.code}
+                                  className="flex gap-3 rounded border border-gray-100 px-2 py-1"
+                                >
+                                  <span className="w-24 shrink-0 font-bold text-blue-700">
+                                    {row.code}
+                                  </span>
+                                  <span className="truncate">
+                                    {row.name}
+                                  </span>
+                                </div>
+                              ))}
+
+                              {csvImportTargetRows.length > 5 && (
+                                <p className="mt-2 text-xs text-gray-500">
+                                  他 {csvImportTargetRows.length - 5} 件あります。
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-sm text-blue-700">
+                        追加登録モードでは、既に存在する案件番号はスキップし、
+                        新規案件番号のみ登録します。
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
               <>
                 <div className="shrink-0 border-b border-gray-200 px-6 py-4">
                   <h2 className="text-lg font-bold text-gray-900">
@@ -1588,116 +1753,42 @@ export default function Home() {
                   )}
                 </div>
               </>
-            ) : (
-              <>
-                {isCsvConfirmMode && (
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                      <h3 className="mb-3 text-lg font-bold text-blue-800">
-                        CSV取込確認
-                      </h3>
-
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div className="rounded-lg bg-white p-3">
-                          <p className="text-xs font-semibold text-gray-500">
-                            取込方式
-                          </p>
-                          <p className="mt-1 font-bold text-gray-900">
-                            追加登録
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                          <div className="rounded-lg bg-white p-3">
-                            <p className="text-xs font-semibold text-gray-500">
-                              CSV件数
-                            </p>
-                            <p className="mt-1 font-bold text-gray-900">
-                              {csvImportSummary.totalCount}件
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg bg-white p-3">
-                            <p className="text-xs font-semibold text-gray-500">
-                              登録予定
-                            </p>
-                            <p className="mt-1 font-bold text-green-700">
-                              {csvImportSummary.importCount}件
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg bg-white p-3">
-                            <p className="text-xs font-semibold text-gray-500">
-                              スキップ予定
-                            </p>
-                            <p className="mt-1 font-bold text-yellow-700">
-                              {csvImportSummary.skipCount}件
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 rounded-lg bg-white p-3 text-sm text-gray-700">
-                          <div className="space-y-1">
-                            <p className="font-semibold text-green-700">
-                              ✓ 入力チェック完了
-                            </p>
-                            <p className="font-semibold text-green-700">
-                              ✓ 重複チェック完了
-                            </p>
-                            <p className="font-semibold text-green-700">
-                              ✓ マスタチェック完了
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 rounded-lg bg-white p-3">
-                          <h4 className="mb-2 text-sm font-bold text-gray-700">
-                            登録予定案件
-                          </h4>
-
-                          {csvImportTargetRows.length === 0 ? (
-                            <p className="text-sm text-gray-500">
-                              登録予定の案件はありません。
-                            </p>
-                          ) : (
-                            <div className="space-y-1 text-sm text-gray-700">
-                              {csvImportTargetRows.slice(0, 5).map((row) => (
-                                <div
-                                  key={row.code}
-                                  className="flex gap-3 rounded border border-gray-100 px-2 py-1"
-                                >
-                                  <span className="w-24 shrink-0 font-bold text-blue-700">
-                                    {row.code}
-                                  </span>
-                                  <span className="truncate">
-                                    {row.name}
-                                  </span>
-                                </div>
-                              ))}
-
-                              {csvImportTargetRows.length > 5 && (
-                                <p className="mt-2 text-xs text-gray-500">
-                                  他 {csvImportTargetRows.length - 5} 件あります。
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <p className="mt-4 text-sm text-blue-700">
-                        追加登録モードでは、既に存在する案件番号はスキップし、
-                        新規案件番号のみ登録します。
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}          
+            )}
 
             <div className="shrink-0 border-t border-gray-200 px-6 py-4">
               <div className="flex justify-end gap-3">
-                {!isCsvConfirmMode ? (
+                {isCsvResultMode ? (
+                  <button
+                    onClick={() => {
+                      clearCsvImport();
+                      setIsCsvImportModalOpen(false);
+                    }}
+                    className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700"
+                  >
+                    閉じる
+                  </button>
+                ) : isCsvConfirmMode ? (
+                  <>
+                    <button
+                      onClick={() => setIsCsvConfirmMode(false)}
+                      className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                    >
+                      戻る
+                    </button>
+
+                    <button
+                      onClick={handleCsvImport}
+                      disabled={isCsvImporting || csvImportSummary.importCount === 0}
+                      className={`rounded-lg px-6 py-2 font-semibold text-white ${
+                        isCsvImporting || csvImportSummary.importCount === 0
+                          ? "bg-gray-400"
+                          : "bg-green-600 hover:bg-green-700"
+                      }`}
+                    >
+                      {isCsvImporting ? "登録中..." : "登録実行"}
+                    </button>
+                  </>
+                ) : (
                   <>
                     <button
                       onClick={() => setIsCsvImportModalOpen(false)}
@@ -1726,28 +1817,7 @@ export default function Home() {
                       取込確認へ
                     </button>
                   </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setIsCsvConfirmMode(false)}
-                      className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-100"
-                    >
-                      戻る
-                    </button>
-
-                    <button
-                      onClick={handleCsvImport}
-                      disabled={isCsvImporting || csvImportSummary.importCount === 0}
-                      className={`rounded-lg px-6 py-2 font-semibold text-white ${
-                        isCsvImporting || csvImportSummary.importCount === 0
-                          ? "bg-gray-400"
-                          : "bg-green-600 hover:bg-green-700"
-                      }`}
-                    >
-                      {isCsvImporting ? "登録中..." : "登録実行"}
-                    </button>
-                  </>
-                )}
+                )}          
               </div>
             </div>
           </div>
