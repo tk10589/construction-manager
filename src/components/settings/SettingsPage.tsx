@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MasterItem, ProjectType, FiscalYear } from "@/types/project";
 import MasterRow from "./MasterRow";
 import MasterModal from "./MasterModal";
+import MasterCsvImportModal from "./MasterCsvImportModal";
 
 type SettingsPageProps = {
   onMasterUpdated: () => void | Promise<void>;
@@ -36,6 +37,15 @@ export default function SettingsPage({
     target: "type" | "client" | "staff" | "fiscalYear";
     action: "add" | "edit" | "delete" | "list";
   } | null>(null);
+
+  const [csvImportTarget, setCsvImportTarget] =
+    useState<
+      "client" |
+      "staff" |
+      "type" |
+      "fiscalYear" |
+      null
+    >(null);
 
   // 種別追加関数
   const addProjectType = async () => {
@@ -285,6 +295,85 @@ export default function SettingsPage({
     fetchFiscalYears();
   }, []);
 
+  // CSV共通関数（ダブルクォーテーション保存）
+  const downloadCSV = (
+    fileName: string,
+    header: string[],
+    rows: (string | number)[][]
+  ) => {
+    const csvContent = [header, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => {
+            const value = String(cell ?? "");
+            const escaped = value.replace(/"/g, '""');
+            return `"${escaped}"`;
+          })
+          .join(",")
+      )
+      .join("\r\n");
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+    link.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  // 共通関数(CSV変換_ダブルクォーテーション無)
+  const downloadMasterCSV = (
+    fileName: string,
+    header: string[],
+    rows: string[][]
+  ) => {
+    const csvContent = [header, ...rows]
+      .map((row) => row.join(","))
+      .join("\r\n");
+
+    const bom = "\uFEFF";
+
+    const blob = new Blob(
+      [bom + csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+    link.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  // 発注者CSV出力関数
+  const exportClientsCsv = () => {
+    const rows = clients.map((client) => [
+      client.name,
+    ]);
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    downloadMasterCSV(
+      `clients_${today}.csv`,
+      ["発注者名"],
+      rows
+    );
+  };
+
   return (
     
     <div className="space-y-6">
@@ -324,7 +413,7 @@ export default function SettingsPage({
               target: "client",
               action: "add",
             })
-          }
+          }          
           onEdit={() =>
             setMasterModal({
               target: "client",
@@ -342,6 +431,10 @@ export default function SettingsPage({
               target: "client",
               action: "list",
             })
+          }
+          onCsvExport={exportClientsCsv}
+          onCsvImport={() =>
+            setCsvImportTarget("client")
           }
         />
 
@@ -418,6 +511,15 @@ export default function SettingsPage({
             await fetchFiscalYears();
             onMasterUpdated();
           }}
+        />
+      )}
+
+      {csvImportTarget && (
+        <MasterCsvImportModal
+          title="発注者CSV取込"
+          existingNames={clients.map((c) => c.name)}
+          onImported={fetchClients}
+          onClose={() => setCsvImportTarget(null)}
         />
       )}
       

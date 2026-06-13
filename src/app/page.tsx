@@ -516,17 +516,33 @@ export default function Home() {
         );
       }
 
-      // 追加登録では既存案件番号はスキップ予定のため、エラーにしない
-      // if (mode === "append" && existingCodes.has(code)) {
-      //   errors.push(
-      //     `${lineNo}行目：案件番号 ${code} は既に存在します`
-      //   );
-      // }
-
       csvCodes.add(code);
     });
 
     return errors;
+  };
+
+  // 発注者管理
+  // 発注者CSVヘッダー作成
+  const clientCsvHeader = [
+    "発注者名",
+  ];
+  
+  // 発注者CSV出力関数
+  const exportClientsCsv = () => {
+    const rows = clients.map((client) => [
+      client.name,
+    ]);
+
+    const today = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    downloadCSV(
+      `clients_${today}.csv`,
+      clientCsvHeader,
+      rows
+    );
   };
 
   // CSVヘッダーを共通化
@@ -762,14 +778,20 @@ export default function Home() {
   };
 
   const [csvImportResult, setCsvImportResult] = useState<{
-    imported: string[];
+    imported: {
+      code: string;
+      name: string;
+    }[];
     skipped: number;
   } | null>(null);
 
   // 登録実行テスト関数
   const handleCsvImport = async () => {
     const importProjects = getCsvImportProjects();
-    const importedCodes: string[] = [];
+    const importedProjects: {
+      code: string;
+      name: string;
+    }[] = [];
 
     if (importProjects.length === 0) {
       alert("登録対象の案件がありません");
@@ -782,13 +804,16 @@ export default function Home() {
       for (const project of importProjects) {
         await createProjectApi(project);
 
-        importedCodes.push(project.code);
+        importedProjects.push({
+          code: project.code,
+          name: project.name,
+        });
       }
 
       await fetchProjects();
 
       setCsvImportResult({
-        imported: importedCodes,
+        imported: importedProjects,
         skipped: csvImportSummary.skipCount,
       });
 
@@ -1477,9 +1502,9 @@ export default function Home() {
                       <div className="space-y-1 text-sm">
                         {csvImportResult.imported
                           .slice(0, 10)
-                          .map((code) => (
-                            <div key={code}>
-                              ✓ {code}
+                          .map((project) => (
+                            <div key={project.code}>
+                              ✓ {project.code}　{project.name}
                             </div>
                           ))}
                       </div>

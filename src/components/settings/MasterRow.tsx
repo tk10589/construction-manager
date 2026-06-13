@@ -6,6 +6,8 @@ type MasterRowProps = {
   onEdit: () => void;
   onDelete: () => void;
   onList: () => void;
+  onCsvExport?: () => void;
+  onCsvImport?: () => void;
 };
 
 export default function MasterRow({
@@ -14,6 +16,8 @@ export default function MasterRow({
   onEdit,
   onDelete,
   onList,
+  onCsvExport,
+  onCsvImport,
 }: MasterRowProps) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-white px-5 py-4 shadow-sm">
@@ -49,6 +53,21 @@ export default function MasterRow({
         >
           一覧
         </button>
+
+        <button
+          onClick={onCsvExport}
+          className="rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white hover:bg-green-700"
+        >
+          CSV出力
+        </button>
+
+        <button
+          onClick={onCsvImport}
+          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700"
+        >
+          CSV取込
+        </button>
+                
       </div>
     </div>
   );
