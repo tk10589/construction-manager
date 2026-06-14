@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 type MasterCsvImportModalProps = {
   title: string;
   existingNames: string[];
+	csvHeader: string;
+	onImport: (names: string[]) => Promise<void>;
 	onImported: () => Promise<void>;
 	onClose: () => void;
 };
@@ -12,6 +14,8 @@ type MasterCsvImportModalProps = {
 export default function MasterCsvImportModal({
   title,
 	existingNames,
+	csvHeader,
+	onImport,
 	onImported,
   onClose,
 }: MasterCsvImportModalProps) {
@@ -42,17 +46,17 @@ export default function MasterCsvImportModal({
 		try {
 			setIsImporting(true);
 
-			for (const name of importTargets) {
-				await fetch("/api/clients", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						name,
-					}),
-				});
-			}
+			await onImport(importTargets);
+
+			await onImported();
+
+			setImportResult({
+				imported: importTargets,
+				skipped: duplicateNames.length,
+			});
+
+			setIsConfirmMode(false);
+			setIsResultMode(true);
 
 			await onImported();
 
@@ -108,9 +112,9 @@ export default function MasterCsvImportModal({
 			.replace(/^"|"$/g, "")
 			.trim();
 
-		if (header !== "発注者名") {
+		if (header !== csvHeader) {
 			setImportError(
-				"CSVヘッダーが一致しません"
+				`CSVヘッダーが一致しません。「${csvHeader}」のCSVを選択してください`
 			);
 			return;
 		}
@@ -254,17 +258,19 @@ export default function MasterCsvImportModal({
 								{/* 登録中の多重クリック防止処理含む */}
 								<button
 									onClick={handleImport}
-									disabled={isImporting}
-									className={`
-										rounded-lg px-4 py-2 text-white
-										${
-											isImporting
-												? "bg-gray-400 cursor-not-allowed"
-												: "bg-blue-600 hover:bg-blue-700"
-										}
-									`}
+									disabled={
+										isImporting ||
+										importTargets.length === 0
+									}
+									className={`rounded-lg px-4 py-2 text-white ${
+										isImporting || importTargets.length === 0
+											? "bg-gray-400 cursor-not-allowed"
+											: "bg-blue-600 hover:bg-blue-700"
+									}`}
 								>
-									{isImporting
+									{importTargets.length === 0
+										? "登録対象なし"
+										: isImporting
 										? "登録中..."
 										: "登録実行"}
 								</button>

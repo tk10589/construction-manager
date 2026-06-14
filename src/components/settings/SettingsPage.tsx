@@ -374,6 +374,21 @@ export default function SettingsPage({
     );
   };
 
+  // 担当者CSV出力関数
+  const exportStaffsCsv = () => {
+    const rows = staffs.map((staff) => [
+      staff.name,
+    ]);
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    downloadMasterCSV(
+      `staffs_${today}.csv`,
+      ["担当者名"],
+      rows
+    );
+  };
+
   return (
     
     <div className="space-y-6">
@@ -464,6 +479,10 @@ export default function SettingsPage({
               action: "list",
             })
           }
+          onCsvExport={exportStaffsCsv}
+          onCsvImport={() =>
+            setCsvImportTarget("staff")
+          }
         />
 
         <MasterRow
@@ -514,11 +533,44 @@ export default function SettingsPage({
         />
       )}
 
-      {csvImportTarget && (
+      {csvImportTarget === "client" && (
         <MasterCsvImportModal
           title="発注者CSV取込"
           existingNames={clients.map((c) => c.name)}
+          csvHeader="発注者名"
+          onImport={async (names) => {
+            for (const name of names) {
+              await fetch("/api/clients", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name }),
+              });
+            }
+          }}
           onImported={fetchClients}
+          onClose={() => setCsvImportTarget(null)}
+        />
+      )}
+
+      {csvImportTarget === "staff" && (
+        <MasterCsvImportModal
+          title="担当者CSV取込"
+          existingNames={staffs.map((s) => s.name)}
+          csvHeader="担当者名"
+          onImport={async (names) => {
+            for (const name of names) {
+              await fetch("/api/staffs", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name }),
+              });
+            }
+          }}
+          onImported={fetchStaffs}
           onClose={() => setCsvImportTarget(null)}
         />
       )}
