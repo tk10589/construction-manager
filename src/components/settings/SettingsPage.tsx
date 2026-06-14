@@ -389,6 +389,42 @@ export default function SettingsPage({
     );
   };
 
+  const exportProjectTypesCsv = () => {
+    const rows = projectTypes.map((type) => [
+      type.code,
+      type.name,
+    ]);
+
+    const today = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    downloadMasterCSV(
+      `project_types_${today}.csv`,
+      ["種別コード", "種別名"],
+      rows
+    );
+  };
+  // 年度CSV出力関数（昇順ソート出力）
+  const exportFiscalYearsCsv = () => {
+    const rows = [...fiscalYears]
+      .sort((a, b) => a.year - b.year)
+      .map((year) => [
+        String(year.year),
+        String(year.endMonth),
+      ]);
+
+    const today = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    downloadMasterCSV(
+      `fiscal_years_${today}.csv`,
+      ["年度", "締め月"],
+      rows
+    );
+  };
+
   return (
     
     <div className="space-y-6">
@@ -418,6 +454,10 @@ export default function SettingsPage({
               target: "type",
               action: "list",
             })
+          }
+          onCsvExport={exportProjectTypesCsv}
+          onCsvImport={() =>
+            setCsvImportTarget("type")
           }
         />
 
@@ -511,6 +551,10 @@ export default function SettingsPage({
               action: "list",
             })
           }
+          onCsvExport={exportFiscalYearsCsv}
+          onCsvImport={() =>
+            setCsvImportTarget("fiscalYear")
+          }
         />
       </div>
     
@@ -537,15 +581,17 @@ export default function SettingsPage({
         <MasterCsvImportModal
           title="発注者CSV取込"
           existingNames={clients.map((c) => c.name)}
-          csvHeader="発注者名"
-          onImport={async (names) => {
-            for (const name of names) {
+          csvHeader={["発注者名"]}
+          onImport={async (rows) => {
+            for (const row of rows) {
               await fetch("/api/clients", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ name }),
+                body: JSON.stringify({
+                  name: row[0],
+                }),
               });
             }
           }}
@@ -558,19 +604,71 @@ export default function SettingsPage({
         <MasterCsvImportModal
           title="担当者CSV取込"
           existingNames={staffs.map((s) => s.name)}
-          csvHeader="担当者名"
-          onImport={async (names) => {
-            for (const name of names) {
+          csvHeader={["担当者名"]}
+          onImport={async (rows) => {
+            for (const row of rows) {
               await fetch("/api/staffs", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ name }),
+                body: JSON.stringify({
+                  name: row[0],
+                }),
               });
             }
           }}
           onImported={fetchStaffs}
+          onClose={() => setCsvImportTarget(null)}
+        />
+      )}
+
+      {csvImportTarget === "type" && (
+        <MasterCsvImportModal
+          title="種別CSV取込"
+          csvHeader={["種別コード", "種別名"]}
+          existingNames={projectTypes.map((type) => type.code)}
+          onImport={async (rows) => {
+            for (const row of rows) {
+              await fetch("/api/project-types", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  code: row[0],
+                  name: row[1],
+                }),
+              });
+            }
+          }}
+          onImported={fetchProjectTypes}
+          onClose={() => setCsvImportTarget(null)}
+        />
+      )}
+
+      {csvImportTarget === "fiscalYear" && (
+        <MasterCsvImportModal
+          title="年度CSV取込"
+          csvHeader={["年度", "締め月"]}
+          existingNames={fiscalYears.map(
+            (year) => String(year.year)
+          )}
+          onImport={async (rows) => {
+            for (const row of rows) {
+              await fetch("/api/fiscal-years", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  year: Number(row[0]),
+                  endMonth: Number(row[1]),
+                }),
+              });
+            }
+          }}
+          onImported={fetchFiscalYears}
           onClose={() => setCsvImportTarget(null)}
         />
       )}

@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 type MasterCsvImportModalProps = {
   title: string;
   existingNames: string[];
-	csvHeader: string;
-	onImport: (names: string[]) => Promise<void>;
+	csvHeader: string[];
+	onImport: (rows: string[][]) => Promise<void>;
 	onImported: () => Promise<void>;
 	onClose: () => void;
 };
@@ -19,17 +19,18 @@ export default function MasterCsvImportModal({
 	onImported,
   onClose,
 }: MasterCsvImportModalProps) {
-	const [importRows, setImportRows] = useState<string[]>([]);
+	const [importRows, setImportRows] = useState<string[][]>([]);
 	const [importError, setImportError] = useState("");
 	const [selectedFileName, setSelectedFileName] = useState("");
-	const [duplicateNames, setDuplicateNames] = useState<string[]>([]);
+	const [duplicateNames,setDuplicateNames,
+	] = useState<string[][]>([]);
 
 	const [isConfirmMode, setIsConfirmMode] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);	
 	const [isResultMode, setIsResultMode] = useState(false);
 	const [importResult, setImportResult] =
 		useState<{
-			imported: string[];
+			imported: string[][];
 			skipped: number;
 		} | null>(null);
 
@@ -97,8 +98,15 @@ export default function MasterCsvImportModal({
 
 		const rows = text
 			.split(/\r?\n/)
-			.map((line) => line.trim())
-			.filter(Boolean);
+			.filter(Boolean)
+			.map((line) =>
+				line.split(",").map((cell) =>
+					cell
+						.replace(/^\uFEFF/, "")
+						.replace(/^"|"$/g, "")
+						.trim()
+				)
+			);
 
 		if (rows.length === 0) {
 			setImportError(
@@ -107,22 +115,27 @@ export default function MasterCsvImportModal({
 			return;
 		}
 
-		const header = rows[0]
-			.replace(/^\uFEFF/, "")
-			.replace(/^"|"$/g, "")
-			.trim();
+		const header = rows[0];
 
-		if (header !== csvHeader) {
+		console.log("header", header);
+		console.log("csvHeader", csvHeader);
+
+		const headerValid =
+			JSON.stringify(header) ===
+			JSON.stringify(csvHeader);
+
+		if (!headerValid) {
 			setImportError(
-				`CSVヘッダーが一致しません。「${csvHeader}」のCSVを選択してください`
+				`CSVヘッダーが一致しません。「${csvHeader.join(",")}」のCSVを選択してください`
 			);
 			return;
 		}
 
 		const dataRows = rows.slice(1);
 
-		const duplicates = dataRows.filter((name) =>
-			existingNames.includes(name)
+		const duplicates = dataRows.filter(
+			(row) =>
+				existingNames.includes(row[0])
 		);
 
 		setDuplicateNames(duplicates);
@@ -183,9 +196,9 @@ export default function MasterCsvImportModal({
 								<div className="mt-2 space-y-1">
 									{importResult?.imported
 										.slice(0, 10)
-										.map((name) => (
-											<div key={name}>
-												✓ {name}
+										.map((row, index) => (
+  										<div key={index}>
+												✓ {row.join(" / ")}
 											</div>
 										))}
 								</div>
@@ -237,9 +250,9 @@ export default function MasterCsvImportModal({
 								<div className="mt-2 space-y-1">
 									{importTargets
 										.slice(0, 10)
-										.map((name) => (
-											<div key={name}>
-												✓ {name}
+										.map((row, index) => (
+  										<div key={index}>
+												✓ {row.join(" / ")}
 											</div>
 										))}
 								</div>

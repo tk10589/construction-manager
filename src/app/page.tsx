@@ -1093,7 +1093,7 @@ export default function Home() {
     );
   };
 
-    const averageCostRate =
+  const averageCostRate =
     summary.totalAmount > 0
       ? summary.executionBudget / summary.totalAmount
       : null;
