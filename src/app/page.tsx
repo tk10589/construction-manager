@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+
+import type { TDocumentDefinitions } from "pdfmake/interfaces";
+
 import { signOut } from "next-auth/react";
 import ProjectsTable from "@/components/ProjectsTable";
 import NewProjectForm from "@/components/NewProjectForm";
@@ -105,6 +110,17 @@ export default function Home() {
   const [isCsvConfirmMode, setIsCsvConfirmMode] = useState(false);
   const [isCsvImporting, setIsCsvImporting] = useState(false);
   const [isCsvResultMode, setIsCsvResultMode] = useState(false);
+
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [pdfPageSize, setPdfPageSize] = useState<"A4" | "A3">("A3");
+  const [pdfColumns, setPdfColumns] = useState({
+    code: true,
+    type: true,
+    name: true,
+    client: true,
+    amount: true,
+    status: true,
+  });
 
   const [filters, setFilters] = useState<ProjectFilters>({
     types: [],
@@ -426,7 +442,207 @@ export default function Home() {
     })),
   ];
 
+  // PDF出力関数  
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
 
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+  };
+
+  // チェック切替用関数（PDFモーダル用）
+  const togglePdfColumn = (
+    key: keyof typeof pdfColumns
+  ) => {
+    setPdfColumns((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const exportProjectsPdf = async () => {
+    const res = await fetch("/fonts/NotoSansJP-Regular.ttf");
+    const fontBuffer = await res.arrayBuffer();
+    const notoSansJpBase64 = arrayBufferToBase64(fontBuffer);
+    const totalAmount = sortedProjects.reduce(
+      (sum, project) => sum + project.amount,
+      0
+    );
+
+    const totalCount = sortedProjects.length;
+
+    // PDF列定義
+    const pdfColumnDefinitions = [
+      {
+        key: "code",
+        label: "案件番号",
+        widthA4: 55,
+        widthA3: 70,
+        getValue: (project: Project) => project.code,
+      },
+      {
+        key: "type",
+        label: "種別",
+        widthA4: 25,
+        widthA3: 30,
+        getValue: (project: Project) => project.type || "",
+      },
+      {
+        key: "name",
+        label: "案件名",
+        widthA4: "*",
+        widthA3: "*",
+        getValue: (project: Project) => project.name,
+      },
+      {
+        key: "client",
+        label: "発注者",
+        widthA4: 90,
+        widthA3: 130,
+        getValue: (project: Project) => project.client,
+      },
+      {
+        key: "amount",
+        label: "受注金額",
+        widthA4: 50,
+        widthA3: 60,
+        getValue: (project: Project) => ({
+          text: `¥${project.amount.toLocaleString("ja-JP")}`,
+          alignment: "right",
+        }),
+      },
+      {
+        key: "status",
+        label: "進捗",
+        widthA4: 35,
+        widthA3: 40,
+        getValue: (project: Project) => project.status || "",
+      },
+    ] as const;
+
+    // 選択された列だけ抽出
+    const selectedPdfColumns = pdfColumnDefinitions.filter(
+      (column) => pdfColumns[column.key]
+    );
+    
+    // 未選択チェック
+    if (selectedPdfColumns.length === 0) {
+      alert("出力項目を1つ以上選択してください");
+      return;
+    }
+
+    // ヘッダー行を動的生成
+    const pdfHeaderRow = selectedPdfColumns.map((column) => ({
+      text: column.label,
+      bold: true,
+      fillColor: "#e5e7eb",
+      alignment: "center",
+    }));
+
+    // データ行を動的生成
+    const pdfRows = sortedProjects.map((project) =>
+      selectedPdfColumns.map((column) =>
+        column.getValue(project)
+      )
+    );
+
+    const tableWidths = selectedPdfColumns.map((column) =>
+      pdfPageSize === "A3"
+        ? column.widthA3
+        : column.widthA4
+    );
+
+    const docDefinition: TDocumentDefinitions = {
+      pageSize: pdfPageSize,
+      pageOrientation: "landscape",
+
+      defaultStyle: {
+        font: "NotoSansJP",
+        fontSize: 8,
+      },
+      
+
+      footer: (currentPage, pageCount) => {
+        return {
+          text: `${currentPage} / ${pageCount}`,
+          alignment: "center",
+          fontSize: 8,
+          margin: [0, 0, 0, 10],
+        };
+      },
+
+      content: [
+        {
+          text: "案件一覧表",
+          fontSize: 16,
+          bold: true,
+          margin: [0, 0, 0, 8],
+        },
+        {
+          text: `出力日: ${new Date().toLocaleDateString("ja-JP")}`,
+          fontSize: 10,
+          margin: [0, 0, 0, 10],
+        },
+        {
+          text: `案件件数：${totalCount}件`,
+          fontSize: 9,
+          margin: [0, 0, 0, 2],
+        },
+
+        {
+          text: `受注金額合計：¥${totalAmount.toLocaleString("ja-JP")}`,
+          fontSize: 9,
+          margin: [0, 0, 0, 10],
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: tableWidths,
+            body: [
+              pdfHeaderRow,
+              ...pdfRows,
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+
+            hLineColor: () => "#666666",
+            vLineColor: () => "#666666",
+
+            paddingLeft: () => 4,
+            paddingRight: () => 4,
+            paddingTop: () => 3,
+            paddingBottom: () => 3,
+          },
+        },
+      ],
+    };
+
+    const fonts = {
+      NotoSansJP: {
+        normal: "NotoSansJP-Regular.ttf",
+        bold: "NotoSansJP-Regular.ttf",
+        italics: "NotoSansJP-Regular.ttf",
+        bolditalics: "NotoSansJP-Regular.ttf",
+      },
+    };
+
+    const vfs = {
+      ...(pdfFonts as any),
+      "NotoSansJP-Regular.ttf": notoSansJpBase64,
+    };
+
+    pdfMake
+      .createPdf(docDefinition, undefined, fonts, vfs)
+      .download("projects.pdf");
+  };
 
   // CSV取込ファイルリセットボタン（state初期化ｸﾘｱ）
   const clearCsvImport = () => {
@@ -1248,6 +1464,13 @@ export default function Home() {
                 </button>
 
                 <button
+                  onClick={() => setIsPdfModalOpen(true)}
+                  className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                >
+                  PDF出力
+                </button>
+
+                <button
                   onClick={exportCSV}
                   className="h-8 w-fit shrink-0 rounded-lg bg-green-600 px-3 text-sm font-bold text-white hover:bg-green-700"
                 >
@@ -1455,6 +1678,162 @@ export default function Home() {
                 staffs={staffs}
                 projectTypes={projectTypes}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPdfModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setIsPdfModalOpen(false)}
+        >
+          <div
+            className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                案件一覧PDF出力
+              </h2>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4 text-sm text-gray-700">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+
+                  <div className="mb-4">
+                    <p className="mb-2 font-semibold">
+                      出力項目
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.code}
+                          onChange={() =>
+                            togglePdfColumn("code")
+                          }
+                        />
+                        <span>案件番号</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.type}
+                          onChange={() =>
+                            togglePdfColumn("type")
+                          }
+                        />
+                        <span>種別</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.name}
+                          onChange={() =>
+                            togglePdfColumn("name")
+                          }
+                        />
+                        <span>案件名</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.client}
+                          onChange={() =>
+                            togglePdfColumn("client")
+                          }
+                        />
+                        <span>発注者</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.amount}
+                          onChange={() =>
+                            togglePdfColumn("amount")
+                          }
+                        />
+                        <span>受注金額</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.status}
+                          onChange={() =>
+                            togglePdfColumn("status")
+                          }
+                        />
+                        <span>進捗</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <p className="font-bold">用紙サイズ</p>
+                  <div className="mt-2 flex gap-4">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="pdfPageSize"
+                        value="A4"
+                        checked={pdfPageSize === "A4"}
+                        onChange={() => setPdfPageSize("A4")}
+                      />
+                      <span>A4横</span>
+                    </label>
+
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="pdfPageSize"
+                        value="A3"
+                        checked={pdfPageSize === "A3"}
+                        onChange={() => setPdfPageSize("A3")}
+                      />
+                      <span>A3横</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="mb-2 font-bold">出力項目</p>
+                  <ul className="space-y-1">
+                    <li>✓ 案件番号</li>
+                    <li>✓ 種別</li>
+                    <li>✓ 案件名</li>
+                    <li>✓ 発注者</li>
+                    <li>✓ 受注金額</li>
+                    <li>✓ 進捗</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-gray-200 px-6 py-4">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setIsPdfModalOpen(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  閉じる
+                </button>
+
+                <button
+                  onClick={() => {
+                    exportProjectsPdf();
+                  }}
+                  className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                >
+                  PDF出力
+                </button>
+              </div>
             </div>
           </div>
         </div>
