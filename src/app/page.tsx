@@ -466,7 +466,9 @@ export default function Home() {
     }));
   };
 
-  const exportProjectsPdf = async () => {
+  const exportProjectsPdf = async (
+    mode: "preview" | "download"
+  ) => {
     const res = await fetch("/fonts/NotoSansJP-Regular.ttf");
     const fontBuffer = await res.arrayBuffer();
     const notoSansJpBase64 = arrayBufferToBase64(fontBuffer);
@@ -530,7 +532,7 @@ export default function Home() {
     const selectedPdfColumns = pdfColumnDefinitions.filter(
       (column) => pdfColumns[column.key]
     );
-    
+
     // 未選択チェック
     if (selectedPdfColumns.length === 0) {
       alert("出力項目を1つ以上選択してください");
@@ -639,9 +641,18 @@ export default function Home() {
       "NotoSansJP-Regular.ttf": notoSansJpBase64,
     };
 
-    pdfMake
-      .createPdf(docDefinition, undefined, fonts, vfs)
-      .download("projects.pdf");
+    const pdf = pdfMake.createPdf(
+      docDefinition,
+      undefined,
+      fonts,
+      vfs
+    );
+
+    if (mode === "preview") {
+      pdf.open();
+    } else {
+      pdf.download("projects.pdf");
+    }
   };
 
   // CSV取込ファイルリセットボタン（state初期化ｸﾘｱ）
@@ -1817,21 +1828,52 @@ export default function Home() {
             </div>
 
             <div className="shrink-0 border-t border-gray-200 px-6 py-4">
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-2 border-t pt-4">
                 <button
-                  onClick={() => setIsPdfModalOpen(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                  onClick={() =>
+                    exportProjectsPdf("preview")
+                  }
+                  className="
+                    rounded-lg
+                    bg-gray-600
+                    px-4
+                    py-2
+                    text-white
+                    hover:bg-gray-700
+                  "
                 >
-                  閉じる
+                  プレビュー
                 </button>
 
                 <button
-                  onClick={() => {
-                    exportProjectsPdf();
-                  }}
-                  className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                  onClick={() =>
+                    exportProjectsPdf("download")
+                  }
+                  className="
+                    rounded-lg
+                    bg-blue-600
+                    px-4
+                    py-2
+                    text-white
+                    hover:bg-blue-700
+                  "
                 >
                   PDF出力
+                </button>
+
+                <button
+                  onClick={() =>
+                    setIsPdfModalOpen(false)
+                  }
+                  className="
+                    rounded-lg
+                    bg-gray-300
+                    px-4
+                    py-2
+                    hover:bg-gray-400
+                  "
+                >
+                  閉じる
                 </button>
               </div>
             </div>
