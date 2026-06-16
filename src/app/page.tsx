@@ -118,7 +118,18 @@ export default function Home() {
     type: true,
     name: true,
     client: true,
+    manager: true,
+
+    salesStaff: false,
+    clientStaff: false,
+
     amount: true,
+    budget: false,
+
+    orderDate: false,
+    startDate: false,
+    endDate: false,
+
     status: true,
   });
 
@@ -287,6 +298,45 @@ export default function Home() {
 
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // PDF設定保持（localStorage）
+  useEffect(() => {
+    const savedPdfColumns =
+      localStorage.getItem("pdfColumns");
+
+    const savedPdfPageSize =
+      localStorage.getItem("pdfPageSize");
+
+    if (savedPdfColumns) {
+      setPdfColumns((prev) => ({
+        ...prev,
+        ...JSON.parse(savedPdfColumns),
+      }));
+    }
+
+    if (
+      savedPdfPageSize === "A4" ||
+      savedPdfPageSize === "A3"
+    ) {
+      setPdfPageSize(savedPdfPageSize);
+    }
+  }, []);
+
+  // 自動保存（PDF出力用項目チェック）
+  useEffect(() => {
+    localStorage.setItem(
+      "pdfColumns",
+      JSON.stringify(pdfColumns)
+    );
+  }, [pdfColumns]);
+
+  // 自動保存（A3,A4選択状態）
+  useEffect(() => {
+    localStorage.setItem(
+      "pdfPageSize",
+      pdfPageSize
+    );
+  }, [pdfPageSize]);
 
   // 補助関数
   const getUniqueValues = (
@@ -466,6 +516,10 @@ export default function Home() {
     }));
   };
 
+  const selectedColumnCount =
+      Object.values(pdfColumns).filter(Boolean)
+        .length;
+
   const exportProjectsPdf = async (
     mode: "preview" | "download"
   ) => {
@@ -478,7 +532,7 @@ export default function Home() {
     );
 
     const totalCount = sortedProjects.length;
-
+    
     // PDF列定義
     const pdfColumnDefinitions = [
       {
@@ -491,8 +545,8 @@ export default function Home() {
       {
         key: "type",
         label: "種別",
-        widthA4: 25,
-        widthA3: 30,
+        widthA4: 20,
+        widthA3: 25,
         getValue: (project: Project) => project.type || "",
       },
       {
@@ -505,9 +559,17 @@ export default function Home() {
       {
         key: "client",
         label: "発注者",
-        widthA4: 90,
-        widthA3: 130,
+        widthA4: 100,
+        widthA3: 120,
         getValue: (project: Project) => project.client,
+      },
+      {
+        key: "clientStaff",
+        label: "発注者担当",
+        widthA4: 60,
+        widthA3: 70,
+        getValue: (project: Project) =>
+          project.clientStaff ?? "",
       },
       {
         key: "amount",
@@ -520,11 +582,59 @@ export default function Home() {
         }),
       },
       {
+        key: "budget",
+        label: "予算",
+        widthA4: 50,
+        widthA3: 60,
+        getValue: (project: Project) => ({
+          text: `¥${(project.budget ?? 0).toLocaleString("ja-JP")}`,
+          alignment: "right",
+        }),
+      },      
+      {
+        key: "salesStaff",
+        label: "営業担当",
+        widthA4: 70,
+        widthA3: 90,
+        getValue: (project: Project) =>
+          project.salesStaff ?? "",
+      },
+      {
         key: "status",
         label: "進捗",
-        widthA4: 35,
-        widthA3: 40,
+        widthA4: 30,
+        widthA3: 35,
         getValue: (project: Project) => project.status || "",
+      },      
+      {
+        key: "orderDate",
+        label: "受注日",
+        widthA4: 40,
+        widthA3: 50,
+        getValue: (project: Project) =>
+          project.orderDate
+            ? new Date(project.orderDate).toLocaleDateString("ja-JP")
+            : "",
+      },
+      {
+        key: "startDate",
+        label: "着工日",
+        widthA4: 40,
+        widthA3: 50,
+        getValue: (project: Project) =>
+          project.startDate
+            ? new Date(project.startDate).toLocaleDateString("ja-JP")
+            : "",
+      },
+      {
+        key: "endDate",
+        label: "完了日",
+        widthA4: 40,
+        widthA3: 50,
+        getValue: (project: Project) =>
+          project.endDate
+            ? new Date(project.endDate).toLocaleDateString("ja-JP")
+            : "",
       },
     ] as const;
 
@@ -560,13 +670,25 @@ export default function Home() {
         : column.widthA4
     );
 
+    // 選択項目数が多い場合のフォント調整
+    const selectedColumnCount = selectedPdfColumns.length;
+
+    const tableFontSize =
+      pdfPageSize === "A4" && selectedColumnCount >= 10
+        ? 6
+        : pdfPageSize === "A4"
+          ? 7
+          : selectedColumnCount >= 10
+            ? 7
+            : 8;
+
     const docDefinition: TDocumentDefinitions = {
       pageSize: pdfPageSize,
       pageOrientation: "landscape",
 
       defaultStyle: {
         font: "NotoSansJP",
-        fontSize: 8,
+        fontSize: tableFontSize,
       },
       
 
@@ -618,10 +740,14 @@ export default function Home() {
             hLineColor: () => "#666666",
             vLineColor: () => "#666666",
 
-            paddingLeft: () => 4,
-            paddingRight: () => 4,
-            paddingTop: () => 3,
-            paddingBottom: () => 3,
+            paddingLeft: () =>
+              selectedColumnCount >= 10 ? 2 : 4,
+            paddingRight: () =>
+              selectedColumnCount >= 10 ? 2 : 4,
+            paddingTop: () =>
+              selectedColumnCount >= 10 ? 2 : 3,
+            paddingBottom: () =>
+              selectedColumnCount >= 10 ? 2 : 3,
           },
         },
       ],
@@ -1476,7 +1602,7 @@ export default function Home() {
 
                 <button
                   onClick={() => setIsPdfModalOpen(true)}
-                  className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                  className="h-8 w-fit shrink-0 rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   PDF出力
                 </button>
@@ -1761,6 +1887,18 @@ export default function Home() {
                           }
                         />
                         <span>発注者</span>
+
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.clientStaff}
+                          onChange={() =>
+                            togglePdfColumn("clientStaff")
+                          }
+                        />
+                        <span>発注者担当</span>
                       </label>
 
                       <label className="flex items-center gap-2">
@@ -1777,6 +1915,17 @@ export default function Home() {
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
+                          checked={pdfColumns.budget}
+                          onChange={() =>
+                            togglePdfColumn("budget")
+                          }
+                        />
+                        <span>予算</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
                           checked={pdfColumns.status}
                           onChange={() =>
                             togglePdfColumn("status")
@@ -1784,6 +1933,51 @@ export default function Home() {
                         />
                         <span>進捗</span>
                       </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.salesStaff}
+                          onChange={() =>
+                            togglePdfColumn("salesStaff")
+                          }
+                        />
+                        <span>営業担当</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.orderDate}
+                          onChange={() =>
+                            togglePdfColumn("orderDate")
+                          }
+                        />
+                        <span>受注日</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.startDate}
+                          onChange={() =>
+                            togglePdfColumn("startDate")
+                          }
+                        />
+                        <span>着工日</span>
+                      </label>
+
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pdfColumns.endDate}
+                          onChange={() =>
+                            togglePdfColumn("endDate")
+                          }
+                        />
+                        <span>完了日</span>
+                      </label>
+
                     </div>
                   </div>
 
@@ -1813,16 +2007,35 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="mb-2 font-bold">出力項目</p>
-                  <ul className="space-y-1">
-                    <li>✓ 案件番号</li>
-                    <li>✓ 種別</li>
-                    <li>✓ 案件名</li>
-                    <li>✓ 発注者</li>
-                    <li>✓ 受注金額</li>
-                    <li>✓ 進捗</li>
-                  </ul>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <p className="mb-2 font-bold text-blue-900">
+                    出力内容
+                  </p>
+
+                  <div className="space-y-1 text-sm">
+                    <p>
+                      案件数：
+                      <span className="font-semibold">
+                        {sortedProjects.length}
+                      </span>
+                      件
+                    </p>
+
+                    <p>
+                      出力項目数：
+                      <span className="font-semibold">
+                        {selectedColumnCount}
+                      </span>
+                      項目
+                    </p>
+
+                    <p>
+                      用紙サイズ：
+                      <span className="font-semibold">
+                        {pdfPageSize}横
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1833,14 +2046,15 @@ export default function Home() {
                   onClick={() =>
                     exportProjectsPdf("preview")
                   }
-                  className="
-                    rounded-lg
-                    bg-gray-600
-                    px-4
-                    py-2
-                    text-white
-                    hover:bg-gray-700
-                  "
+                  disabled={selectedColumnCount === 0}
+                  className={`
+                    rounded-lg px-4 py-2 text-white
+                    ${
+                      selectedColumnCount === 0
+                        ? "bg-gray-600"
+                        : "bg-gray-700 hover:bg-gray-900"
+                    }
+                  `}            
                 >
                   プレビュー
                 </button>
@@ -1849,14 +2063,15 @@ export default function Home() {
                   onClick={() =>
                     exportProjectsPdf("download")
                   }
-                  className="
-                    rounded-lg
-                    bg-blue-600
-                    px-4
-                    py-2
-                    text-white
-                    hover:bg-blue-700
-                  "
+                  disabled={selectedColumnCount === 0}
+                  className={`
+                    rounded-lg px-4 py-2 text-white
+                    ${
+                      selectedColumnCount === 0
+                        ? "bg-gray-400"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }
+                  `}
                 >
                   PDF出力
                 </button>
