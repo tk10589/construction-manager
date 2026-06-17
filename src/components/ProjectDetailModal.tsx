@@ -23,6 +23,20 @@ type ProjectDetailModalProps = {
   onSaved: () => void | Promise<void>;
 };
 
+type ProjectSchedule = {
+  id: number;
+
+  projectId: number;
+
+  startDate: string;
+  endDate: string;
+
+  title: string;
+  status: string;
+
+  memo?: string;
+};
+
 export default function ProjectDetailModal({
   selectedProject,
   clients,
@@ -61,6 +75,22 @@ export default function ProjectDetailModal({
   const [activeTab, setActiveTab] = useState<
     "basic" | "cost" | "schedule" | "files" | "history"
   >("basic");
+
+  const [schedules, setSchedules] = useState<ProjectSchedule[]>([]);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] =
+    useState(false);
+
+  const [scheduleForm, setScheduleForm] =
+    useState({
+      startDate: "",
+      endDate: "",
+
+      status: "未着手",
+
+      title: "",
+
+      memo: "",
+    });
 
   useEffect(() => {
     
@@ -122,6 +152,58 @@ export default function ProjectDetailModal({
   }, [selectedProject]);
 
   useEffect(() => {
+    if (!selectedProject) return;
+
+    loadSchedules(selectedProject.id);
+  }, [selectedProject]);
+
+  // useEffect(() => {
+  //   setSchedules([
+  //     {
+  //       id: 1,
+  //       projectId: selectedProject.id,
+
+  //       startDate: "2026-06-01",
+  //       endDate: "2026-06-01",
+
+  //       title: "受注日",
+
+  //       status: "完了",
+
+  //       memo: "",
+  //     },
+
+  //     {
+  //       id: 2,
+  //       projectId: selectedProject.id,
+
+  //       startDate: "2026-06-20",
+  //       endDate: "2026-06-20",
+
+  //       title: "現場打合せ",
+
+  //       status: "完了",
+
+  //       memo: "客先打合せ",
+  //     },
+
+  //     {
+  //       id: 3,
+  //       projectId: selectedProject.id,
+
+  //       startDate: "2026-06-21",
+  //       endDate: "2026-07-15",
+
+  //       title: "事前準備",
+
+  //       status: "進行中",
+
+  //       memo: "機器手配・図面確認",
+  //     },
+  //   ]);
+  // }, [selectedProject]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
@@ -170,6 +252,77 @@ export default function ProjectDetailModal({
       );
     };
   }, []);
+
+  const loadSchedules = async (
+    projectId: number
+  ) => {
+    try {
+      const res = await fetch(
+        `/api/project-schedules?projectId=${projectId}`
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          "工程取得に失敗しました"
+        );
+      }
+
+      const data = await res.json();
+
+      setSchedules(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAddSchedule = async () => {
+    if (!scheduleForm.startDate) {
+      alert("開始日を入力してください");
+      return;
+    }
+
+    if (!scheduleForm.endDate) {
+      alert("終了日を入力してください");
+      return;
+    }
+
+    if (!scheduleForm.title.trim()) {
+      alert("内容を入力してください");
+      return;
+    }
+
+    const res = await fetch("/api/project-schedules", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        projectId: selectedProject.id,
+        startDate: scheduleForm.startDate,
+        endDate: scheduleForm.endDate,
+        status: scheduleForm.status,
+        title: scheduleForm.title,
+        memo: scheduleForm.memo,
+      }),
+    });
+
+    if (!res.ok) {
+      alert("工程登録に失敗しました");
+      return;
+    }
+
+    setScheduleForm({
+      startDate: "",
+      endDate: "",
+      status: "未着手",
+      title: "",
+      memo: "",
+    });
+
+    setIsScheduleModalOpen(false);
+
+    await loadSchedules(selectedProject.id);
+  };
 
   const toNumber = (value: string) => {
     return value ? Number(value.replace(/,/g, "")) : 0;
@@ -484,9 +637,120 @@ export default function ProjectDetailModal({
               )}
 
               {activeTab === "schedule" && (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
-                  工程管理機能は今後追加予定です。
-                </div>
+                <section>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-700">
+                      工程管理
+                    </h3>
+
+                    <button
+                      onClick={() =>
+                        setIsScheduleModalOpen(true)
+                      }
+                      className="
+                        rounded-lg
+                        bg-blue-600
+                        px-3
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-white
+                        hover:bg-blue-700
+                      "
+                    >
+                      ＋予定追加
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="min-w-full table-fixed text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="w-[90px] px-2 py-2 text-left">
+                            開始日
+                          </th>
+
+                          <th className="w-[90px] px-2 py-2 text-left">
+                            終了日
+                          </th>
+
+                          <th className="w-[80px] px-2 py-2 text-left">
+                            状態
+                          </th>
+
+                          <th className="w-[180px] px-2 py-2 text-left">
+                            内容
+                          </th>
+
+                          <th className="px-2 py-2 text-left">
+                            備考
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {schedules.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="
+                                px-4
+                                py-8
+                                text-center
+                                text-gray-500
+                              "
+                            >
+                              工程データはありません
+                            </td>
+                          </tr>
+                        ) : (
+                          schedules.map((schedule) => (
+                            <tr
+                              key={schedule.id}
+                              className="
+                                border-t
+                                border-gray-300
+                                hover:bg-gray-50
+                                cursor-pointer
+                              "
+                            >
+                              <td className="px-2 py-1">
+                                {new Date(
+                                  schedule.startDate
+                                ).toLocaleDateString("ja-JP")}
+                              </td>
+
+                              <td className="px-2 py-1">
+                                {new Date(
+                                  schedule.endDate
+                                ).toLocaleDateString("ja-JP")}
+                              </td>
+
+                              <td className="px-2 py-1">
+                                {schedule.status}
+                              </td>
+
+                              <td className="px-2 py-1">
+                                {schedule.title}
+                              </td>
+
+                              <td
+                                className="
+                                  px-2
+                                  py-1
+                                  whitespace-normal
+                                  break-words
+                                "
+                              >
+                                {schedule.memo}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               )}
 
               {activeTab === "files" && (
@@ -1089,6 +1353,191 @@ export default function ProjectDetailModal({
             >
             {isSaving ? "保存中…" : "保存"}
           </button>
+          )}
+
+          {isScheduleModalOpen && (
+            <div
+              className="
+                fixed
+                inset-0
+                z-50
+                flex
+                items-center
+                justify-center
+                bg-black/50
+              "
+            >
+              <div
+                className="
+                  w-full
+                  max-w-md
+                  rounded-lg
+                  bg-white
+                  p-6
+                "
+              >
+                <h2 className="mb-4 text-lg font-bold">
+                  工程追加
+                </h2>
+
+                <div className="space-y-4">
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      開始日
+                    </label>
+
+                    <input
+                      type="date"
+                      value={scheduleForm.startDate}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          startDate: e.target.value,
+                        }))
+                      }
+                      className="
+                        w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                      "
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      終了日
+                    </label>
+
+                    <input
+                      type="date"
+                      value={scheduleForm.endDate}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          endDate: e.target.value,
+                        }))
+                      }
+                      className="
+                        w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                      "
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      状態
+                    </label>
+
+                    <select
+                      value={scheduleForm.status}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          status: e.target.value,
+                        }))
+                      }
+                      className="
+                        w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                      "
+                    >
+                      <option value="未着手">
+                        未着手
+                      </option>
+
+                      <option value="進行中">
+                        進行中
+                      </option>
+
+                      <option value="完了">
+                        完了
+                      </option>
+
+                      <option value="保留">
+                        保留
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      内容
+                    </label>
+
+                    <input
+                      type="text"
+                      value={scheduleForm.title}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
+                      className="
+                        w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                      "
+                      maxLength={20}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      備考
+                    </label>
+
+                    <textarea
+                      value={scheduleForm.memo}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          memo: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      className="
+                        w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                      "
+                      maxLength={200}
+                    />
+                  </div>
+
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsScheduleModalOpen(false)}
+                    className="rounded-lg bg-gray-300 px-4 py-2"
+                  >
+                    閉じる
+                  </button>
+
+                  <button
+                    onClick={handleAddSchedule}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           <button
